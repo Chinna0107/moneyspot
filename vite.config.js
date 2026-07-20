@@ -50,7 +50,18 @@ export default defineConfig(({ mode }) => {
         '/leads':          { target: backendUrl, changeOrigin: true },
         '/fraud':          { target: backendUrl, changeOrigin: true },
         '/finance':        { target: backendUrl, changeOrigin: true },
-        '/notifications':  { target: backendUrl, changeOrigin: true },
+        '/notifications': {
+          target: backendUrl,
+          changeOrigin: true,
+          bypass(req) {
+            // /superadmin/notifications is a React page — handled by /superadmin proxy
+            // Only bypass direct /notifications page navigations
+            if (req.method === 'GET' && !req.headers.authorization &&
+                (req.url === '/notifications' || req.url.startsWith('/notifications/'))) {
+              return '/index.html'
+            }
+          },
+        },
         '/visitors':       { target: backendUrl, changeOrigin: true },
       },
     },

@@ -12,30 +12,50 @@ const empty = {
   referral_name: '', referral_phone: ''
 }
 
-const ImgField = ({ label, icon, field, value, onChange }) => (
-  <div className="dash-form-group">
-    <label>{icon} {label}</label>
-    <div style={{ display: 'flex', gap: 8 }}>
-      <input
-        type="url"
-        placeholder="Paste image URL here after uploading"
-        value={value}
-        onChange={e => onChange(field, e.target.value)}
-        style={{ flex: 1 }}
-      />
-      <a href="https://cloudinary.com/console/media_library" target="_blank" rel="noopener noreferrer"
-        style={{ padding: '0 14px', background: '#3448c5', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-        ☁️ Upload
-      </a>
-    </div>
-    {value && (
-      <div style={{ marginTop: 8 }}>
-        <img src={value} alt={label} onError={e => e.target.style.display='none'}
-          style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+const ImgField = ({ label, icon, field, value, onChange }) => {
+  const [uploading, setUploading] = useState(false)
+  const token = getTokenByRole('employee') || getTokenByRole('admin')
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      const key = field.replace('_url', '').replace('aadhar_img', 'aadhar_img').replace('pan_img', 'pan_img').replace('card_front_img', 'card_front_img')
+      fd.append(key, file)
+      const res = await fetch('/customers/upload-kyc', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      onChange(field, data[field])
+    } catch (err) { alert(err.message) }
+    finally { setUploading(false) }
+  }
+
+  return (
+    <div className="dash-form-group">
+      <label>{icon} {label}</label>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input type="file" accept="image/*,application/pdf" onChange={handleFile}
+          disabled={uploading}
+          style={{ flex: 1, fontSize: 13, opacity: uploading ? 0.5 : 1 }} />
+        {uploading && (
+          <span style={{ fontSize: 12, color: '#402070', fontWeight: 700, whiteSpace: 'nowrap' }}>⏳ Uploading...</span>
+        )}
       </div>
-    )}
-  </div>
-)
+      {value && (
+        <div style={{ marginTop: 8 }}>
+          <img src={value} alt={label} onError={e => e.target.style.display='none'}
+            style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function AddCustomer() {
   const navigate = useNavigate()

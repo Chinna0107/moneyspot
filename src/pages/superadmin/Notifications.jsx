@@ -20,13 +20,32 @@ const TARGET_COLORS = { all: '#402070', admin: '#059669', employee: '#d97706' }
 
 export default function Notifications() {
   const { notifications, unreadCount } = useNotifications('superadmin')
-  const [form, setForm]     = useState({ title: '', message: '', target: 'all', image_url: '' })
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg]       = useState('')
-  const [error, setError]   = useState('')
-  const [preview, setPreview] = useState('')
+  const [form, setForm]         = useState({ title: '', message: '', target: 'all', image_url: '' })
+  const [saving, setSaving]     = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [msg, setMsg]           = useState('')
+  const [error, setError]       = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const res = await fetch('/notifications/upload-image', {
+        method: 'POST',
+        headers: auth(),
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      set('image_url', data.url)
+    } catch (err) { setError(err.message) }
+    finally { setUploading(false) }
+  }
 
   const handleSend = async (e) => {
     e.preventDefault()
@@ -39,7 +58,6 @@ export default function Notifications() {
       })
       setMsg('Notification sent successfully!')
       setForm({ title: '', message: '', target: 'all', image_url: '' })
-      setPreview('')
     } catch (e) { setError(e.message) }
     setSaving(false)
   }
@@ -95,21 +113,23 @@ export default function Notifications() {
                       style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: 14, padding: '10px 12px', borderRadius: 8, border: '1.5px solid rgba(64,32,112,0.2)', width: '100%' }} />
                   </div>
                   <div className="sa-form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label>Image URL <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
-                    <input placeholder="https://example.com/image.jpg"
-                      value={form.image_url}
-                      onChange={e => { set('image_url', e.target.value); setPreview(e.target.value.trim()) }}
-                      style={{ fontFamily: 'monospace', fontSize: 13 }} />
-                    {preview && (
-                      <div style={{ marginTop: 10, borderRadius: 10, overflow: 'hidden', border: '1.5px solid rgba(64,32,112,0.15)', maxWidth: 360, position: 'relative' }}>
-                        <img src={preview} alt="preview"
-                          onError={e => { e.target.style.display = 'none' }}
-                          onLoad={e => { e.target.style.display = 'block' }}
-                          style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'none' }} />
-                        <div style={{ position: 'absolute', top: 6, right: 6 }}>
-                          <button type="button" onClick={() => { set('image_url', ''); setPreview('') }}
-                            style={{ background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                        </div>
+                    <label>Image <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="file" accept="image/*" onChange={handleImageUpload}
+                        disabled={uploading}
+                        style={{ flex: 1, fontSize: 13, opacity: uploading ? 0.5 : 1 }} />
+                      {uploading && <span style={{ fontSize: 12, color: '#402070', fontWeight: 700, whiteSpace: 'nowrap' }}>⏳ Uploading...</span>}
+                      {form.image_url && !uploading && (
+                        <button type="button" onClick={() => set('image_url', '')}
+                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
+                    {form.image_url && (
+                      <div style={{ marginTop: 10, borderRadius: 10, overflow: 'hidden', border: '1.5px solid rgba(64,32,112,0.15)', maxWidth: 360 }}>
+                        <img src={form.image_url} alt="preview"
+                          style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
                       </div>
                     )}
                   </div>

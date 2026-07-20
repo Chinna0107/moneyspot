@@ -412,11 +412,31 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
                       {editing && (
                         <div style={{ padding: '8px 10px', borderTop: '1px solid #e2e8f0' }}>
                           <input
-                            placeholder="Paste image URL..."
-                            value={imgUrls[d.key]}
-                            onChange={e => setImgUrls(prev => ({ ...prev, [d.key]: e.target.value }))}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(64,32,112,0.2)', fontSize: 11, fontFamily: 'monospace', boxSizing: 'border-box', outline: 'none' }}
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={async (e) => {
+                              const file = e.target.files[0]
+                              if (!file) return
+                              e.target.disabled = true
+                              const label = e.target.nextSibling
+                              if (label) label.style.display = 'inline'
+                              const fd = new FormData()
+                              fd.append(d.key.replace('_url', ''), file)
+                              try {
+                                const res = await fetch('/customers/upload-kyc', {
+                                  method: 'POST',
+                                  headers: { Authorization: `Bearer ${getTokenByRole('admin')}` },
+                                  body: fd,
+                                })
+                                const data = await res.json()
+                                if (!res.ok) throw new Error(data.error || 'Upload failed')
+                                setImgUrls(prev => ({ ...prev, [d.key]: data[d.key] }))
+                              } catch (err) { alert(err.message) }
+                              finally { e.target.disabled = false; if (label) label.style.display = 'none' }
+                            }}
+                            style={{ width: '100%', fontSize: 11, boxSizing: 'border-box' }}
                           />
+                          <span style={{ display: 'none', fontSize: 11, color: '#402070', fontWeight: 700 }}>⏳ Uploading...</span>
                         </div>
                       )}
                     </div>

@@ -4,6 +4,7 @@ import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
 import { useAddCustomer, useMyCustomers } from '../../hooks/useCustomers'
 import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
+import config from '../../config'
 import '../../pages/dashboard.css'
 
 const empty = {
@@ -24,7 +25,7 @@ const ImgField = ({ label, icon, field, value, onChange }) => {
       const fd = new FormData()
       const key = field.replace('_url', '').replace('aadhar_img', 'aadhar_img').replace('pan_img', 'pan_img').replace('card_front_img', 'card_front_img')
       fd.append(key, file)
-      const res = await fetch('/customers/upload-kyc', {
+      const res = await fetch(`${config.API_URL}/customers/upload-kyc`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd,

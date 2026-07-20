@@ -3,6 +3,7 @@ import AdminSidebar from '../../components/admin/AdminSidebar'
 import { useCustomerRequests } from '../../hooks/useCustomers'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
+import config from '../../config'
 import '../../pages/dashboard.css'
 import '../employee/CustomerInfo.css'
 
@@ -423,7 +424,7 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
                               const fd = new FormData()
                               fd.append(d.key.replace('_url', ''), file)
                               try {
-                                const res = await fetch('/customers/upload-kyc', {
+                                const res = await fetch(`${config.API_URL}/customers/upload-kyc`, {
                                   method: 'POST',
                                   headers: { Authorization: `Bearer ${getTokenByRole('admin')}` },
                                   body: fd,

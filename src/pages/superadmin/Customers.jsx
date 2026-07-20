@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import * as XLSX from 'xlsx'
 import Sidebar from '../../components/superadmin/Sidebar'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
@@ -73,54 +74,68 @@ export default function SuperAdminCustomers() {
     setTagging(false)
   }
 
-  const exportData = async (format) => {
-    try {
-      const params = new URLSearchParams()
-      if (branch) params.append('branch', branch)
-      if (status) params.append('status', status)
-      if (search) params.append('search', search)
-      
-      const url = `/customers/export/${format}?${params.toString()}`
-      
-      // Use config.API_URL for proper URL construction
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-      const fullUrl = `${apiUrl}${url}`
-      
-      console.log(`Requesting export: ${fullUrl}`)
-      
-      // Use fetch directly for file downloads, not the api utility
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${getTokenByRole('superadmin')}`
-        }
-      })
-      
-      console.log(`Export response status: ${response.status}`)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Export error response:', errorText)
-        throw new Error(`Export failed: ${response.status} - ${errorText}`)
-      }
-      
-      const blob = await response.blob()
-      console.log(`Export blob size: ${blob.size} bytes`)
-      
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = downloadUrl
-      a.download = `customers_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(downloadUrl)
-      
-      console.log(`✅ ${format.toUpperCase()} export completed successfully`)
-    } catch (error) {
-      console.error('Export error:', error)
-      alert(`Export failed: ${error.message}`)
-    }
+  const exportExcel = () => {
+    if (!customers.length) return alert('No customers to export')
+    const rows = customers.map(c => ({
+      'Name':           c.name || '',
+      'Phone':          c.phone || '',
+      'Email':          c.email || '',
+      'PAN':            c.pan || '',
+      'Aadhar':         c.aadhar || '',
+      'Account No':     c.acc_number || '',
+      'Branch':         c.branch || '',
+      'Coins':          c.coins ?? 0,
+      'Status':         c.status || '',
+      'Tag':            c.tag || '',
+      'Added By':       c.added_by_name || '',
+      'Transactions':   c.txn_count || 0,
+      'Total Amount (₹)': parseFloat(c.total_amount) || 0,
+      'Joined Date':    new Date(c.created_at).toLocaleDateString('en-IN'),
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Customers')
+    XLSX.writeFile(wb, `customers_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  const exportPDF = () => {
+    if (!customers.length) return alert('No customers to export')
+    const dateStr = new Date().toLocaleDateString('en-IN')
+    const rows = customers.map((c, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${c.name}</strong><br/><span style="color:#64748b;font-size:11px">${c.email || ''}</span></td>
+        <td>${c.phone || '—'}</td>
+        <td style="font-family:monospace">${c.pan || '—'}</td>
+        <td>${c.branch || '—'}</td>
+        <td style="color:#b8860b;font-weight:700">🪙 ${c.coins ?? 0}</td>
+        <td>${c.txn_count || 0}</td>
+        <td style="color:#059669;font-weight:700">₹${fmt(c.total_amount || 0)}</td>
+        <td><span style="background:${STATUS_STYLE[c.status]?.bg || '#f1f5f9'};color:${STATUS_STYLE[c.status]?.color || '#64748b'};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${c.status}</span></td>
+        <td style="font-size:11px;color:#64748b">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+      </tr>`).join('')
+    const html = `<html><head><title>Customers Export</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; color: #1a0a2e; }
+        h2   { color: #402070; margin-bottom: 4px; }
+        p    { color: #64748b; font-size: 12px; margin: 0 0 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #402070; color: #fff; padding: 9px 12px; text-align: left; font-size: 11px; }
+        td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+        tr:nth-child(even) td { background: #f8fafc; }
+      </style></head><body>
+      <h2>👥 MoneySpot — Customers Report</h2>
+      <p>Exported on ${dateStr} · ${customers.length} customers${branch ? ` · Branch: ${branch}` : ''}${status ? ` · Status: ${status}` : ''}</p>
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Coins</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Joined</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </body></html>`
+    const w = window.open('', '_blank')
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => { w.print(); w.close() }, 400)
   }
 
   return (
@@ -205,36 +220,16 @@ export default function SuperAdminCustomers() {
             
             {/* Export Buttons */}
             <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-              <button 
-                onClick={() => exportData('excel')}
+              <button
+                onClick={exportExcel}
                 disabled={loading}
-                style={{ 
-                  padding: '9px 14px', 
-                  borderRadius: 8, 
-                  border: 'none', 
-                  background: loading ? '#9ca3af' : '#059669', 
-                  color: '#fff', 
-                  fontSize: 13, 
-                  cursor: loading ? 'not-allowed' : 'pointer', 
-                  fontFamily: 'inherit', 
-                  fontWeight: 700 
-                }}>
+                style={{ padding: '9px 14px', borderRadius: 8, border: 'none', background: loading ? '#9ca3af' : '#059669', color: '#fff', fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>
                 📊 Export Excel
               </button>
-              <button 
-                onClick={() => exportData('pdf')}
+              <button
+                onClick={exportPDF}
                 disabled={loading}
-                style={{ 
-                  padding: '9px 14px', 
-                  borderRadius: 8, 
-                  border: 'none', 
-                  background: loading ? '#9ca3af' : '#dc2626', 
-                  color: '#fff', 
-                  fontSize: 13, 
-                  cursor: loading ? 'not-allowed' : 'pointer', 
-                  fontFamily: 'inherit', 
-                  fontWeight: 700 
-                }}>
+                style={{ padding: '9px 14px', borderRadius: 8, border: 'none', background: loading ? '#9ca3af' : '#dc2626', color: '#fff', fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>
                 📄 Export PDF
               </button>
             </div>

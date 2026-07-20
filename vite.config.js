@@ -40,6 +40,13 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/master':         { target: backendUrl, changeOrigin: true },
+        '/superadmin': {
+          target: backendUrl,
+          changeOrigin: true,
+          bypass(req) {
+            if (req.method === 'GET' && !req.headers.authorization) return '/index.html'
+          },
+        },
         '/leads':          { target: backendUrl, changeOrigin: true },
         '/fraud':          { target: backendUrl, changeOrigin: true },
         '/finance':        { target: backendUrl, changeOrigin: true },

@@ -3,13 +3,10 @@ import { api } from '../utils/api'
 
 const KEY = 'customer_auth'
 
-// ── Module-level cache (survives re-renders & page navigation) ──
 const cache = {
-  profile: null,
-  txns: null,
-  profileTs: 0,
-  txnsTs: 0,
-  TTL: 5 * 60 * 1000, // 5 minutes
+  profile: null, txns: null,
+  profileTs: 0,  txnsTs: 0,
+  TTL: 5 * 60 * 1000,
 }
 
 const isFresh = (ts) => Date.now() - ts < cache.TTL
@@ -33,7 +30,6 @@ export function useCustomerLogin() {
     try {
       const data = await api('/customer/login', { method: 'POST', body: JSON.stringify({ pan, phone }) })
       localStorage.setItem(KEY, JSON.stringify({ ...data, timestamp: new Date().toISOString() }))
-      // clear cache on new login
       cache.profile = null; cache.txns = null
       cache.profileTs = 0;  cache.txnsTs = 0
       return data
@@ -51,33 +47,29 @@ export function useCustomerLogin() {
   return { login, logout, loading, error, setError }
 }
 
-// ── Profile — cached, no repeat hits ─────────────────────────
+// ── Profile ───────────────────────────────────────────────────
 export function useCustomerProfile() {
-  const [profile, setProfile] = useState(null)   // always fresh-fetch for card_front_img_url
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
 
   useEffect(() => {
     setLoading(true)
     api('/customer/profile', { headers: authHeader() })
-      .then(d => {
-        cache.profile = d
-        cache.profileTs = Date.now()
-        setProfile(d); setLoading(false)
-      })
+      .then(d => { cache.profile = d; cache.profileTs = Date.now(); setProfile(d); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }, [])
 
   return { profile, loading, error }
 }
 
-// ── Coins ────────────────────────────────────────────────────
+// ── Coins ─────────────────────────────────────────────────────
 export function useCustomerCoins() {
-  const [coins, setCoins]           = useState(null)
-  const [loading, setLoading]       = useState(true)
-  const [redeeming, setRedeeming]   = useState(false)
-  const [msg, setMsg]               = useState('')
-  const [error, setError]           = useState('')
+  const [coins, setCoins]         = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [redeeming, setRedeeming] = useState(false)
+  const [msg, setMsg]             = useState('')
+  const [error, setError]         = useState('')
 
   const refetch = useCallback(() => {
     setLoading(true)
@@ -100,6 +92,42 @@ export function useCustomerCoins() {
 
   return { coins, loading, redeeming, msg, error, redeem, refetch, setMsg, setError }
 }
+
+// ── Redeem Request (sends to superadmin for approval) ─────────
+export function useRedeemRequest() {
+  const [loading, setLoading]       = useState(false)
+  const [hasPending, setHasPending] = useState(false)
+  const [history, setHistory]       = useState([])
+  const [msg, setMsg]               = useState('')
+  const [error, setError]           = useState('')
+
+  const fetchStatus = useCallback(() => {
+    api('/customer/coins/redeem-status',  { headers: authHeader() }).then(d => setHasPending(d.hasPending)).catch(() => {})
+    api('/customer/coins/redeem-history', { headers: authHeader() }).then(d => setHistory(Array.isArray(d) ? d : [])).catch(() => {})
+  }, [])
+
+  useEffect(() => { fetchStatus() }, [fetchStatus])
+
+  const submitRequest = async (coins) => {
+    setLoading(true); setMsg(''); setError('')
+    try {
+      const r = await api('/customer/coins/redeem-request', {
+        method: 'POST',
+        headers: authHeader(),
+        body: JSON.stringify({ coins }),
+      })
+      setMsg(r.message || 'Request submitted! Awaiting superadmin approval.')
+      setHasPending(true)
+      fetchStatus()
+      return true
+    } catch (e) { setError(e.message); return false }
+    finally { setLoading(false) }
+  }
+
+  return { submitRequest, hasPending, history, loading, msg, error, setMsg, setError }
+}
+
+// ── Transactions ──────────────────────────────────────────────
 export function useCustomerTransactions() {
   const [txns, setTxns]       = useState(cache.txns || [])
   const [loading, setLoading] = useState(!isFresh(cache.txnsTs))
@@ -109,11 +137,7 @@ export function useCustomerTransactions() {
     if (!force && isFresh(cache.txnsTs)) { setTxns(cache.txns); setLoading(false); return }
     setLoading(true)
     api('/customer/transactions', { headers: authHeader() })
-      .then(d => {
-        cache.txns = d
-        cache.txnsTs = Date.now()
-        setTxns(d); setLoading(false)
-      })
+      .then(d => { cache.txns = d; cache.txnsTs = Date.now(); setTxns(d); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }, [])
 

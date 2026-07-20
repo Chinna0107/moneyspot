@@ -38,7 +38,7 @@ export default function CustomerSidebar() {
         <div className="csb-brand">
           <img src={logoImg} alt="MoneySpot" className="csb-logo" />
           <div>
-            <img src={nameImg} alt="MoneySpot" style={{ height: 18, width: 'auto', objectFit: 'contain', filter: 'brightness(0)', display: 'block' }} />
+            <img src={nameImg} alt="MoneySpot" style={{ height: 18, width: 'auto', objectFit: 'contain', display: 'block' }} />
             <div className="csb-brand-sub">Customer Portal</div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function CustomerSidebar() {
       <header className="csb-mobile-header">
         <div className="csb-mobile-brand">
           <img src={logoImg} alt="MoneySpot" className="csb-mobile-logo" />
-          <img src={nameImg} alt="MoneySpot" style={{ height: 20, width: 'auto', objectFit: 'contain', filter: 'brightness(0)' }} />
+          <img src={nameImg} alt="MoneySpot" style={{ height: 20, width: 'auto', objectFit: 'contain' }} />
         </div>
         <div className="csb-mobile-user">
           <div className="csb-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>

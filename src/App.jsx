@@ -33,6 +33,7 @@ import Security from './pages/superadmin/Security'
 import SuperAdminCustomers from './pages/superadmin/Customers'
 import FraudList from './pages/superadmin/FraudList'
 import Notifications from './pages/superadmin/Notifications'
+import RedemptionList from './pages/superadmin/RedemptionList'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -148,6 +149,7 @@ export default function App() {
         {/* <Route path="/admin/profile"          element={<AdminRoute><Profile Sidebar={AdminSidebar} isAdmin={true} /></AdminRoute>} /> */}
         <Route path="/superadmin/fraud"         element={<SuperAdminRoute><FraudList /></SuperAdminRoute>} />
         <Route path="/superadmin/notifications"  element={<SuperAdminRoute><Notifications /></SuperAdminRoute>} />
+        <Route path="/superadmin/redemptions"    element={<SuperAdminRoute><RedemptionList /></SuperAdminRoute>} />
 
         {/* Admin routes */}
         <Route path="/admin/dashboard"       element={<AdminRoute><AdminDashboard /></AdminRoute>} />

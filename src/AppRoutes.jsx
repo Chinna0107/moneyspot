@@ -18,6 +18,7 @@ import Security from './pages/superadmin/Security';
 import FraudList from './pages/superadmin/FraudList';
 import Notifications from './pages/superadmin/Notifications';
 import RedemptionList from './pages/superadmin/RedemptionList';
+import SuperAdminTransactions from './pages/superadmin/Transactions';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -73,6 +74,7 @@ export default function AppRoutes() {
       <Route path="/superadmin/security"   element={<SuperAdminRoute><Security /></SuperAdminRoute>} />
       <Route path="/superadmin/fraud"      element={<SuperAdminRoute><FraudList /></SuperAdminRoute>} />
       <Route path="/superadmin/redemptions" element={<SuperAdminRoute><RedemptionList /></SuperAdminRoute>} />
+      <Route path="/superadmin/transactions" element={<SuperAdminRoute><SuperAdminTransactions /></SuperAdminRoute>} />
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard"       element={<AdminRoute><AdminDashboard /></AdminRoute>} />

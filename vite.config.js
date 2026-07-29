@@ -44,6 +44,8 @@ export default defineConfig(({ mode }) => {
           target: backendUrl,
           changeOrigin: true,
           bypass(req) {
+            // Page navigations have no Authorization header — serve React app
+            // API calls (redeem-requests, etc.) always have Authorization header
             if (req.method === 'GET' && !req.headers.authorization) return '/index.html'
           },
         },

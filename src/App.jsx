@@ -34,6 +34,8 @@ import SuperAdminCustomers from './pages/superadmin/Customers'
 import FraudList from './pages/superadmin/FraudList'
 import Notifications from './pages/superadmin/Notifications'
 import RedemptionList from './pages/superadmin/RedemptionList'
+import SuperAdminTransactions from './pages/superadmin/Transactions'
+import SACustomerInfo from './pages/superadmin/CustomerInfo'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -150,6 +152,8 @@ export default function App() {
         <Route path="/superadmin/fraud"         element={<SuperAdminRoute><FraudList /></SuperAdminRoute>} />
         <Route path="/superadmin/notifications"  element={<SuperAdminRoute><Notifications /></SuperAdminRoute>} />
         <Route path="/superadmin/redemptions"    element={<SuperAdminRoute><RedemptionList /></SuperAdminRoute>} />
+        <Route path="/superadmin/transactions"    element={<SuperAdminRoute><SuperAdminTransactions /></SuperAdminRoute>} />
+        <Route path="/superadmin/customer-info"    element={<SuperAdminRoute><SACustomerInfo /></SuperAdminRoute>} />
 
         {/* Admin routes */}
         <Route path="/admin/dashboard"       element={<AdminRoute><AdminDashboard /></AdminRoute>} />

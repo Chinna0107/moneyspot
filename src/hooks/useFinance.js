@@ -362,3 +362,22 @@ export function useAdminExpenses() {
     loading, msg, error, addExpense, refetch,
   }
 }
+
+// ── useSuperAdminTransactions ─────────────────────────────────
+export function useSuperAdminTransactions(from, to, page = 1, branch = '') {
+  const { data, loading, refetch } = useSWR(
+    `sa:txns:${from}:${to}:${page}:${branch}`,
+    () => {
+      const p = new URLSearchParams({ from, to, page: page.toString() })
+      if (branch) p.set('branch', branch)
+      return api(`/dashboard/reports?${p}`, { headers: authSA() })
+    },
+    TTL.dashboard
+  )
+  return {
+    transactions: data?.transactions ?? [],
+    totals:       data?.totals       ?? {},
+    pagination:   data?.pagination   ?? {},
+    loading, refetch,
+  }
+}

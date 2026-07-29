@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import AdminSidebar from '../../components/admin/AdminSidebar'
+import CloudinaryUpload from '../../components/shared/CloudinaryUpload'
 import { getTokenByRole, getUserByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
 import '../../pages/dashboard.css'
@@ -113,29 +114,31 @@ export default function CreateEmployee() {
                     </label>
                   </div>
                   <div className="dash-form-group">
-                    <label>PAN Card Image URL</label>
-                    <input type="url" placeholder="Paste PAN card image URL" value={form.pan_img_url}
-                      onChange={e => set('pan_img_url', e.target.value)} />
+                    <label>PAN Card Image</label>
+                    <CloudinaryUpload label="PAN Card" icon="🆔" value={form.pan_img_url}
+                      folder="moneyspot/employees" onUpload={(url) => set('pan_img_url', url)} />
                   </div>
                   <div className="dash-form-group">
-                    <label>Aadhar Card Image URL</label>
-                    <input type="url" placeholder="Paste Aadhar card image URL" value={form.aadhar_img_url}
-                      onChange={e => set('aadhar_img_url', e.target.value)} />
+                    <label>Aadhar Card Image</label>
+                    <CloudinaryUpload label="Aadhar Card" icon="🪪" value={form.aadhar_img_url}
+                      folder="moneyspot/employees" onUpload={(url) => set('aadhar_img_url', url)} />
                   </div>
                   <div className="dash-form-group">
-                    <label>Document / ID Proof URL</label>
-                    <input type="url" placeholder="Paste document image URL" value={form.docx_url}
-                      onChange={e => set('docx_url', e.target.value)} />
+                    <label>Document / ID Proof</label>
+                    <CloudinaryUpload label="Document" icon="📋" value={form.docx_url}
+                      folder="moneyspot/employees" onUpload={(url) => set('docx_url', url)} />
                   </div>
                   <div className="dash-form-group">
-                    <label>Resume URL</label>
-                    <input type="url" placeholder="Paste resume URL" value={form.resume_url}
-                      onChange={e => set('resume_url', e.target.value)} />
+                    <label>Resume</label>
+                    <CloudinaryUpload label="Resume" icon="📄" value={form.resume_url}
+                      folder="moneyspot/employees" onUpload={(url) => set('resume_url', url)}
+                      accept="image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
                   </div>
                   <div className="dash-form-group">
-                    <label>Employee Photo URL</label>
-                    <input type="url" placeholder="Paste photo URL" value={form.photo_url}
-                      onChange={e => set('photo_url', e.target.value)} />
+                    <label>Employee Photo</label>
+                    <CloudinaryUpload label="Photo" icon="📸" value={form.photo_url}
+                      folder="moneyspot/employees" onUpload={(url) => set('photo_url', url)}
+                      accept="image/jpeg,image/png,image/webp" />
                   </div>
                 </div>
                 <button type="submit" className="dash-btn dash-btn-primary"

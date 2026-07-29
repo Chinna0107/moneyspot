@@ -35,3 +35,25 @@ export const api = async (endpoint, options = {}) => {
   if (!res.ok) throw new Error(data.error || 'Something went wrong')
   return data
 }
+
+// ── Upload helper (multipart/form-data) ──────────────────────
+// Do NOT set Content-Type — browser sets it with boundary automatically
+export const apiUpload = async (endpoint, file, token) => {
+  const form = new FormData()
+  form.append('file', file)
+
+  const res = await fetch(`${config.API_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  })
+
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Server error (${res.status})`)
+  }
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Upload failed')
+  return data
+}

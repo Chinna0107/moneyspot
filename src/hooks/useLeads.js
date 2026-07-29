@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../utils/api'
-import { getTokenByRole } from '../utils/tokenUtils'
+import { getCurrentToken } from '../utils/tokenUtils'
 
-const getToken = () =>
-  getTokenByRole('superadmin') || getTokenByRole('admin') || getTokenByRole('employee') ||
-  localStorage.getItem('ms_token')
-
-const auth = () => ({ Authorization: `Bearer ${getToken()}` })
+const auth = () => ({ Authorization: `Bearer ${getCurrentToken()}` })
 
 // ── useLeads ──────────────────────────────────────────────────
 export function useLeads(filterStatus = '', filterType = '') {

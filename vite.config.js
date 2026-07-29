@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/visitors':       { target: backendUrl, changeOrigin: true },
+        '/upload':         { target: backendUrl, changeOrigin: true },
       },
     },
   }

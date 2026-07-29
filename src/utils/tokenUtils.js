@@ -22,3 +22,13 @@ export function getAuthHeader(role) {
   const token = getTokenByRole(role)
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
+
+export function getCurrentToken() {
+  const currentRole = localStorage.getItem('current_role')
+  if (currentRole) {
+    const token = getTokenByRole(currentRole)
+    if (token) return token
+  }
+  return getTokenByRole('superadmin') || getTokenByRole('admin') || getTokenByRole('employee') || localStorage.getItem('ms_token')
+}
+

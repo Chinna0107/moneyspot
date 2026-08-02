@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../utils/api'
-import { getCurrentToken } from '../utils/tokenUtils'
+import { getCurrentToken, getTokenByRole } from '../utils/tokenUtils'
 
 const auth = () => ({ Authorization: `Bearer ${getCurrentToken()}` })
 

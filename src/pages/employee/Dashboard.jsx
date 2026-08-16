@@ -64,6 +64,8 @@ export default function EmployeeDashboard() {
   const [attLoading, setAttLoading] = useState(false)
   const [greeting, setGreeting]   = useState('')
 
+  const [targetData, setTargetData] = useState(null)
+
   useEffect(() => {
     const h = new Date().getHours()
     setGreeting(h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening')
@@ -71,8 +73,14 @@ export default function EmployeeDashboard() {
 
   const refetch = useCallback(() => {
     setLoading(true)
-    api('/dashboard/employee/stats', { headers: auth() })
-      .then(d => { setData(d); setLoading(false) })
+    Promise.all([
+      api('/dashboard/employee/stats', { headers: auth() }),
+      api('/dashboard/employee/target', { headers: auth() })
+    ]).then(([d, t]) => { 
+        setData(d); 
+        setTargetData(t); 
+        setLoading(false) 
+      })
       .catch(() => setLoading(false))
   }, [])
 
@@ -92,7 +100,14 @@ export default function EmployeeDashboard() {
   const s       = data?.stats       ?? {}
   const txns    = data?.transactions ?? []
   const att     = data?.attendance  ?? null
+  
+  // Daily Txn Target
   const pct     = Math.min(100, Math.round((s.txnToday ?? 0) / TARGET * 100))
+  // Monthly Volume Target
+  const monthTarget = targetData?.target_amount || 0
+  const monthAchieved = targetData?.achieved_amount || 0
+  const monthPct = monthTarget > 0 ? Math.min(100, Math.round((monthAchieved / monthTarget) * 100)) : 0
+
   const now     = new Date()
 
   return (
@@ -162,40 +177,65 @@ export default function EmployeeDashboard() {
 
         <div className="ed-grid">
 
-          {/* ── Target ── */}
+          {/* ── Targets ── */}
           <div className="ed-card ed-card-target">
             <div className="ed-card-header">
               <span className="ed-card-icon">🎯</span>
-              <h2>Daily Target</h2>
-              <span className="ed-card-badge" style={{ background: pct >= 100 ? '#d1fae5' : pct >= 60 ? '#fef3c7' : '#fee2e2', color: pct >= 100 ? '#059669' : pct >= 60 ? '#d97706' : '#dc2626' }}>
-                {pct}%
-              </span>
+              <h2>Targets Tracker</h2>
             </div>
             <div className="ed-card-body">
-              <div className="ed-target-info">
-                <span className="ed-target-current">{s.txnToday ?? 0}</span>
-                <span className="ed-target-sep">/</span>
-                <span className="ed-target-max">{TARGET} txns</span>
-              </div>
-              <div className="ed-progress-track">
-                <div className="ed-progress-fill" style={{
-                  width: `${pct}%`,
-                  background: pct >= 100 ? 'linear-gradient(90deg,#10b981,#059669)' : pct >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
-                }} />
-                <div className="ed-progress-glow" style={{ left: `${pct}%`, background: pct >= 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444' }} />
-              </div>
-              <div className="ed-target-msg">
-                {pct >= 100 ? '🎉 Target achieved! Outstanding work!' : `${TARGET - (s.txnToday ?? 0)} more to reach today's target`}
-              </div>
-              <div className="ed-target-divider" />
-              <div className="ed-target-extra">
-                <div className="ed-target-extra-item">
-                  <span>💰 Value This Month</span>
-                  <strong style={{ color: '#059669' }}>{fmtVal(s.valueMonth ?? 0)}</strong>
+              {/* Monthly Volume Target */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <strong style={{ color: '#402070', fontSize: 14 }}>Monthly Target (Volume)</strong>
+                  <span className="ed-card-badge" style={{ background: monthPct >= 100 ? '#d1fae5' : monthPct >= 60 ? '#fef3c7' : '#fee2e2', color: monthPct >= 100 ? '#059669' : monthPct >= 60 ? '#d97706' : '#dc2626' }}>
+                    {monthPct}%
+                  </span>
                 </div>
-                <div className="ed-target-extra-item">
-                  <span>📊 Txns This Month</span>
-                  <strong style={{ color: '#402070' }}>{fmt(s.txnMonth ?? 0)}</strong>
+                {monthTarget > 0 ? (
+                  <>
+                    <div className="ed-target-info" style={{ marginBottom: 8 }}>
+                      <span className="ed-target-current">{fmtVal(monthAchieved)}</span>
+                      <span className="ed-target-sep">/</span>
+                      <span className="ed-target-max">{fmtVal(monthTarget)}</span>
+                    </div>
+                    <div className="ed-progress-track">
+                      <div className="ed-progress-fill" style={{
+                        width: `${monthPct}%`,
+                        background: monthPct >= 100 ? 'linear-gradient(90deg,#10b981,#059669)' : monthPct >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
+                      }} />
+                      <div className="ed-progress-glow" style={{ left: `${monthPct}%`, background: monthPct >= 100 ? '#10b981' : monthPct >= 60 ? '#f59e0b' : '#ef4444' }} />
+                    </div>
+                    <div className="ed-target-msg" style={{ marginTop: 8 }}>
+                      {monthPct >= 100 ? '🎉 Monthly Target achieved!' : `Keep pushing to reach your monthly goal!`}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 13, color: '#888', padding: '12px 0' }}>No target set by branch manager for this month.</div>
+                )}
+              </div>
+
+              <div className="ed-target-divider" />
+
+              {/* Daily Txn Target */}
+              <div style={{ marginTop: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <strong style={{ color: '#0ea5e9', fontSize: 14 }}>Daily Transactions</strong>
+                  <span className="ed-card-badge" style={{ background: pct >= 100 ? '#d1fae5' : pct >= 60 ? '#fef3c7' : '#fee2e2', color: pct >= 100 ? '#059669' : pct >= 60 ? '#d97706' : '#dc2626' }}>
+                    {pct}%
+                  </span>
+                </div>
+                <div className="ed-target-info" style={{ marginBottom: 8 }}>
+                  <span className="ed-target-current" style={{ color: '#0ea5e9' }}>{s.txnToday ?? 0}</span>
+                  <span className="ed-target-sep">/</span>
+                  <span className="ed-target-max">{TARGET} txns</span>
+                </div>
+                <div className="ed-progress-track">
+                  <div className="ed-progress-fill" style={{
+                    width: `${pct}%`,
+                    background: pct >= 100 ? 'linear-gradient(90deg,#10b981,#059669)' : pct >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
+                  }} />
+                  <div className="ed-progress-glow" style={{ left: `${pct}%`, background: pct >= 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444' }} />
                 </div>
               </div>
             </div>

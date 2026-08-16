@@ -45,6 +45,35 @@ function EmployeeDetailModal({ emp, onClose }) {
     if (t === 'attendance')   loadAtt()
   }
 
+  const allServices = ["Domestic Money Transfer", "Bill Pay + Withdrawal", "Card Withdrawal", "AEPS", "Cibil Enquiry Fees"];
+  const allFeatures = ["Customer Requests", "Attendance", "All Transactions", "Expenses Management", "Pending Payments", "Customer Reminders"];
+  
+  const [perms, setPerms] = useState({ 
+    services: emp.permissions?.services || [], 
+    features: emp.permissions?.features || [] 
+  })
+  const [savingPerms, setSavingPerms] = useState(false)
+  const [permMsg, setPermMsg] = useState('')
+
+  const handleSavePerms = async () => {
+    setSavingPerms(true); setPermMsg('');
+    try {
+      await api(`/dashboard/employees/${emp.id}/permissions`, {
+        method: 'PATCH',
+        headers: auth(),
+        body: JSON.stringify({ permissions: perms })
+      })
+      setPermMsg('✅ Permissions updated successfully')
+      emp.permissions = perms
+    } catch (err) {
+      setPermMsg('❌ ' + err.message)
+    }
+    setSavingPerms(false)
+  }
+
+  const toggleService = s => setPerms(p => ({ ...p, services: p.services.includes(s) ? p.services.filter(x => x !== s) : [...p.services, s] }))
+  const toggleFeature = f => setPerms(p => ({ ...p, features: p.features.includes(f) ? p.features.filter(x => x !== f) : [...p.features, f] }))
+
   const docs = [
     { label: '🧑 Photo',         url: emp.photo_url },
     { label: '🪪 Aadhaar Card',  url: emp.aadhar_img_url },
@@ -108,7 +137,7 @@ function EmployeeDetailModal({ emp, onClose }) {
 
           {/* Tabs */}
           <div style={{ display:'flex', gap:6, marginTop:16 }}>
-            {[['details','👤 Details'],['documents','🖼️ Documents'],['transactions','📋 Transactions'],['attendance','✅ Attendance']].map(([key,label]) => (
+            {[['details','👤 Details'],['permissions','⚙️ Permissions'],['documents','🖼️ Documents'],['transactions','📋 Transactions'],['attendance','✅ Attendance']].map(([key,label]) => (
               <button key={key} onClick={() => handleTab(key)}
                 style={{ padding:'6px 14px', borderRadius:20, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
                   background: tab===key ? '#fff' : 'rgba(255,255,255,0.15)',
@@ -131,6 +160,41 @@ function EmployeeDetailModal({ emp, onClose }) {
                   <div style={{ fontSize:13, fontWeight:700, color:'#1a0a2e', fontFamily:f.mono?'monospace':'inherit', wordBreak:'break-all' }}>{f.value}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Permissions */}
+          {tab === 'permissions' && (
+            <div>
+              {permMsg && <div className={permMsg.includes('✅') ? "dash-alert dash-alert-success" : "dash-alert dash-alert-error"} style={{ marginBottom: 16 }}>{permMsg}</div>}
+              
+              <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, border: '1.5px solid #e2e8f0', marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#1e293b' }}>Authorized Services</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {allServices.map(s => (
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, background: '#fff', padding: '6px 12px', borderRadius: 20, border: '1px solid #cbd5e1', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={perms.services.includes(s)} onChange={() => toggleService(s)} />
+                      {s}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, border: '1.5px solid #e2e8f0', marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#1e293b' }}>Authorized Features</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {allFeatures.map(f => (
+                    <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, background: '#fff', padding: '6px 12px', borderRadius: 20, border: '1px solid #cbd5e1', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={perms.features.includes(f)} onChange={() => toggleFeature(f)} />
+                      {f}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button className="dash-btn dash-btn-primary" onClick={handleSavePerms} disabled={savingPerms}>
+                {savingPerms ? 'Saving...' : 'Save Permissions'}
+              </button>
             </div>
           )}
 

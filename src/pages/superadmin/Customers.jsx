@@ -84,6 +84,7 @@ export default function SuperAdminCustomers() {
       'Aadhar':         c.aadhar || '',
       'Account No':     c.acc_number || '',
       'Branch':         c.branch || '',
+      'Source':         c.source || '',
       'Coins':          c.coins ?? 0,
       'Status':         c.status || '',
       'Tag':            c.tag || '',
@@ -108,6 +109,7 @@ export default function SuperAdminCustomers() {
         <td>${c.phone || '—'}</td>
         <td style="font-family:monospace">${c.pan || '—'}</td>
         <td>${c.branch || '—'}</td>
+        <td>${c.source || '—'}</td>
         <td style="color:#b8860b;font-weight:700">🪙 ${c.coins ?? 0}</td>
         <td>${c.txn_count || 0}</td>
         <td style="color:#059669;font-weight:700">₹${fmt(c.total_amount || 0)}</td>
@@ -127,7 +129,7 @@ export default function SuperAdminCustomers() {
       <h2>👥 MoneySpot — Customers Report</h2>
       <p>Exported on ${dateStr} · ${customers.length} customers${branch ? ` · Branch: ${branch}` : ''}${status ? ` · Status: ${status}` : ''}</p>
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Coins</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Joined</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Coins</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Joined</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       </body></html>`
@@ -247,7 +249,7 @@ export default function SuperAdminCustomers() {
               ) : (
                 <table className="sa-table">
                   <thead>
-                    <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
+                    <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
                   </thead>
                   <tbody>
                     {customers.map(c => {
@@ -271,6 +273,7 @@ export default function SuperAdminCustomers() {
                           </td>
                           <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.pan}</td>
                           <td><span style={{ background: '#ede9fe', color: '#402070', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{c.branch || '—'}</span></td>
+                          <td style={{ fontSize: 12 }}>{c.source || '—'}</td>
                           <td style={{ fontWeight: 700, color: '#d4af37', fontSize: 13 }}>🪙 {c.coins ?? 0}</td>
                           <td>
                             <div className="ci-doc-thumbs">
@@ -336,6 +339,7 @@ export default function SuperAdminCustomers() {
                   { label: 'Aadhar',     value: viewCustomer.aadhar ? viewCustomer.aadhar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—' },
                   { label: 'Account No', value: viewCustomer.acc_number || '—' },
                   { label: 'Branch',     value: viewCustomer.branch     || '—' },
+                  { label: 'Source',     value: viewCustomer.source     || '—' },
                   { label: 'Status',     value: viewCustomer.status,    color: STATUS_STYLE[viewCustomer.status]?.color },
                   { label: 'Added',      value: new Date(viewCustomer.created_at).toLocaleDateString('en-IN') },
                   { label: 'Added By',   value: viewCustomer.added_by_name   || '—' },

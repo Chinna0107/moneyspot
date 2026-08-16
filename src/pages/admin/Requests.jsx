@@ -96,7 +96,7 @@ export default function Requests() {
                   ) : (
                     <table className="dash-table">
                       <thead>
-                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Acc No.</th><th>Branch</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Acc No.</th><th>Branch</th><th>Source</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
                       </thead>
                       <tbody>
                         {rows.map(c => (
@@ -108,6 +108,7 @@ export default function Requests() {
                             <td>{c.aadhar}</td>
                             <td>{c.acc_number}</td>
                             <td>{c.branch || '—'}</td>
+                            <td>{c.source || '—'}</td>
                             <td>
                               <div className="req-doc-thumbs">
                                 {c.aadhar_img_url

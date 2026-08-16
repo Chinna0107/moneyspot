@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../../components/superadmin/Sidebar'
 import { useSuperAdminFinance, useBranches, useSuperAdminWallets } from '../../hooks/useSuperAdmin'
+import { useWalletGroups } from '../../hooks/useFinance'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { cacheClear } from '../../utils/cache'
@@ -44,6 +45,38 @@ export default function Finance() {
   const [wAmount, setWAmount]   = useState('')
   const [wRemarks, setWRemarks] = useState('')
 
+  const { walletGroups: rawWalletGroups, createGroup, deleteGroup } = useWalletGroups()
+  // Map DB format (wallet_ids) to UI format (walletIds)
+  const walletGroups = rawWalletGroups.map(g => ({ ...g, walletIds: (g.wallet_ids || []).map(Number) }))
+  const [expandedGroups, setExpandedGroups] = useState({})
+  const [showGroupModal, setShowGroupModal] = useState(false)
+  const [groupForm, setGroupForm] = useState({ id: '', name: '', walletIds: [] })
+
+  const [groupMsg, setGroupMsg] = useState('')
+
+  const saveWalletGroup = async () => {
+    if (!groupForm.name.trim()) { setGroupMsg('⚠️ Please enter a group name'); return }
+    if (groupForm.walletIds.length < 2) { setGroupMsg('⚠️ Select at least 2 wallets to merge'); return }
+    try {
+      await createGroup(groupForm.name, groupForm.walletIds.map(Number))
+      setGroupMsg('')
+      setShowGroupModal(false)
+      setWMsg('✅ Wallet group saved successfully')
+    } catch (e) { setGroupMsg('❌ ' + e.message) }
+  }
+
+  const deleteWalletGroup = async (id) => {
+    try { await deleteGroup(id) } catch (e) { setWMsg('❌ ' + e.message) }
+  }
+
+  const toggleWalletInGroup = (wId) => {
+    const sId = String(wId)
+    setGroupForm(prev => ({
+      ...prev,
+      walletIds: prev.walletIds.map(String).includes(sId) ? prev.walletIds.filter(id => String(id) !== sId) : [...prev.walletIds, sId]
+    }))
+  }
+
   const handleWalletAction = async () => {
     if (!wAmount || parseFloat(wAmount) <= 0) return
     const ok = wAction.mode === 'add'
@@ -64,7 +97,97 @@ export default function Finance() {
   }
 
 
-  const maxDaily = Math.max(1, ...daily.map(d => d.amount))
+  const renderWallets = (wallets) => {
+    const grouped = []
+    const usedIds = new Set()
+    
+    walletGroups.forEach(g => {
+      const gIds = (g.walletIds || []).map(id => String(id))
+      const gWallets = wallets.filter(w => gIds.includes(String(w.id)))
+      if (gWallets.length > 0) {
+        gWallets.forEach(w => usedIds.add(String(w.id)))
+        grouped.push({
+          isGroup: true,
+          id: g.id,
+          name: g.name,
+          wallets: gWallets,
+          balance: gWallets.reduce((s, w) => s + parseFloat(w.balance || 0), 0),
+          today_inflow: gWallets.reduce((s, w) => s + parseFloat(w.today_inflow || 0), 0),
+          today_outflow: gWallets.reduce((s, w) => s + parseFloat(w.today_outflow || 0), 0),
+          month_inflow: gWallets.reduce((s, w) => s + parseFloat(w.month_inflow || 0), 0),
+          month_outflow: gWallets.reduce((s, w) => s + parseFloat(w.month_outflow || 0), 0),
+        })
+      }
+    })
+
+    wallets.forEach(w => {
+      if (!usedIds.has(String(w.id))) {
+        grouped.push(w)
+      }
+    })
+
+    return grouped.map(item => {
+      if (item.isGroup) {
+        const expanded = expandedGroups[item.id]
+        return (
+          <React.Fragment key={`group-${item.id}`}>
+            <tr onClick={() => setExpandedGroups(p => ({ ...p, [item.id]: !p[item.id] }))} style={{ cursor: 'pointer', background: expanded ? '#f8fafc' : 'inherit', borderBottom: expanded ? 'none' : '' }}>
+              <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', color: '#94a3b8' }}>▶</span>
+                  <strong>{item.name}</strong>
+                  <span className="dash-badge" style={{ background: '#ede9fe', color: '#7c3aed', fontSize: 10 }}>Group ({item.wallets.length})</span>
+                </div>
+              </td>
+              <td>—</td>
+              <td style={{ fontWeight: 800, color: item.balance < 1000 ? '#dc2626' : '#059669' }}>₹{fmt(item.balance)}</td>
+              <td style={{ color: '#059669', fontWeight: 600 }}>₹{fmt(item.today_inflow)}</td>
+              <td style={{ color: '#dc2626', fontWeight: 600 }}>₹{fmt(item.today_outflow)}</td>
+              <td style={{ color: '#059669' }}>₹{fmt(item.month_inflow)}</td>
+              <td style={{ color: '#dc2626' }}>₹{fmt(item.month_outflow)}</td>
+              <td><span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>Expand to manage</span></td>
+            </tr>
+            {expanded && item.wallets.map(w => (
+              <tr key={w.id} style={{ background: '#f8fafc', borderTop: 'none' }}>
+                <td style={{ paddingLeft: 32 }}>↳ <strong>{w.name}</strong>{w.platform ? <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>({w.platform})</span> : null}</td>
+                <td><span className="dash-badge badge-purple" style={{ fontSize: 11 }}>{w.wallet_type || 'platform'}</span></td>
+                <td style={{ fontWeight: 800, color: parseFloat(w.balance) < 1000 ? '#dc2626' : '#059669' }}>₹{fmt(w.balance)}</td>
+                <td style={{ color: '#059669', fontWeight: 600 }}>₹{fmt(w.today_inflow)}</td>
+                <td style={{ color: '#dc2626', fontWeight: 600 }}>₹{fmt(w.today_outflow)}</td>
+                <td style={{ color: '#059669' }}>₹{fmt(w.month_inflow)}</td>
+                <td style={{ color: '#dc2626' }}>₹{fmt(w.month_outflow)}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="sa-btn sa-btn-primary sa-btn-sm" onClick={(e) => { e.stopPropagation(); setWAction({ id: w.id, name: w.name, mode: 'add' }); setWAmount(''); setWRemarks('') }}>+ Add</button>
+                    <button className="sa-btn sa-btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={(e) => { e.stopPropagation(); setWAction({ id: w.id, name: w.name, mode: 'deduct' }); setWAmount(''); setWRemarks('') }}>− Deduct</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </React.Fragment>
+        )
+      } else {
+        const w = item
+        return (
+          <tr key={w.id}>
+            <td><strong>{w.name}</strong>{w.platform ? <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>({w.platform})</span> : null}</td>
+            <td><span className="dash-badge badge-purple" style={{ fontSize: 11 }}>{w.wallet_type || 'platform'}</span></td>
+            <td style={{ fontWeight: 800, color: parseFloat(w.balance) < 1000 ? '#dc2626' : '#059669' }}>₹{fmt(w.balance)}</td>
+            <td style={{ color: '#059669', fontWeight: 600 }}>₹{fmt(w.today_inflow)}</td>
+            <td style={{ color: '#dc2626', fontWeight: 600 }}>₹{fmt(w.today_outflow)}</td>
+            <td style={{ color: '#059669' }}>₹{fmt(w.month_inflow)}</td>
+            <td style={{ color: '#dc2626' }}>₹{fmt(w.month_outflow)}</td>
+            <td>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="sa-btn sa-btn-primary sa-btn-sm" onClick={() => { setWAction({ id: w.id, name: w.name, mode: 'add' }); setWAmount(''); setWRemarks('') }}>+ Add</button>
+                <button className="sa-btn sa-btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => { setWAction({ id: w.id, name: w.name, mode: 'deduct' }); setWAmount(''); setWRemarks('') }}>− Deduct</button>
+              </div>
+            </td>
+          </tr>
+        )
+      }
+    })
+  }
 
   return (
     <div className="sa-page">
@@ -397,13 +520,62 @@ export default function Finance() {
                   </div>
                 </div>
               )}
+              {showGroupModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 440, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: 16, color: '#1a0a2e' }}>
+                      {groupForm.id ? 'Edit Wallet Group' : 'Create Wallet Group'}
+                    </h3>
+                    <input placeholder="Group Name (e.g. Finkeda Combined)" value={groupForm.name} onChange={e => setGroupForm({...groupForm, name: e.target.value})}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
+                    <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, border: '1.5px solid #f1f5f9', borderRadius: 8, padding: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>Select Wallets to Merge</div>
+                      {byBranch && Object.entries(byBranch).map(([branch, wList]) => (
+                        <div key={branch} style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#402070', marginBottom: 4 }}>{branch}</div>
+                          {wList.map(w => (
+                            <label key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 4, cursor: 'pointer' }}>
+                              <input type="checkbox" checked={groupForm.walletIds.map(String).includes(String(w.id))} onChange={() => toggleWalletInGroup(w.id)} />
+                              {w.name} {w.platform ? `(${w.platform})` : ''}
+                            </label>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    {groupMsg && <div style={{ fontSize: 13, color: '#d97706', fontWeight: 700, marginBottom: 10, padding: '6px 10px', background: '#fef3c7', borderRadius: 8 }}>{groupMsg}</div>}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="sa-btn sa-btn-primary" style={{ flex: 1 }} onClick={saveWalletGroup}>Save Group</button>
+                      <button className="sa-btn" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={() => setShowGroupModal(false)}>Cancel</button>
+                    </div>
+                    <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>Existing Groups</div>
+                      {walletGroups.length === 0 && <div style={{ fontSize: 12, color: '#64748b' }}>No groups created yet</div>}
+                      {walletGroups.map(g => (
+                        <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a0a2e' }}>{g.name}</div>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{g.walletIds.length} wallets</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => {setGroupForm(g); setShowGroupModal(true)}} style={{ fontSize: 12, border: 'none', background: 'none', color: '#059669', cursor: 'pointer', fontWeight: 700 }}>Edit</button>
+                            <button onClick={() => deleteWalletGroup(g.id)} style={{ fontSize: 12, border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 700 }}>Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               {wLoading ? <SkeletonTable rows={4} cols={8} /> : Object.entries(byBranch).map(([branch, wallets]) => (
                 <div key={branch} className="sa-card" style={{ marginBottom: 20 }}>
                   <div className="sa-card-header">
                     <h2>🏦 {branch}</h2>
-                    <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                      Total: ₹{fmt(wallets.reduce((s, w) => s + parseFloat(w.balance || 0), 0))}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <button className="sa-btn sa-btn-sm" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#402070' }} onClick={() => { setGroupForm({ id: '', name: '', walletIds: [] }); setShowGroupModal(true) }}>🔗 Group Wallets</button>
+                      <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                        Total: ₹{fmt(wallets.reduce((s, w) => s + parseFloat(w.balance || 0), 0))}
+                      </span>
+                    </div>
                   </div>
                   <div className="sa-table-wrap">
                     <table className="sa-table">
@@ -416,23 +588,7 @@ export default function Finance() {
                         </tr>
                       </thead>
                       <tbody>
-                        {wallets.map(w => (
-                          <tr key={w.id}>
-                            <td><strong>{w.name}</strong>{w.platform ? <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>({w.platform})</span> : null}</td>
-                            <td><span className="dash-badge badge-purple" style={{ fontSize: 11 }}>{w.wallet_type || 'platform'}</span></td>
-                            <td style={{ fontWeight: 800, color: parseFloat(w.balance) < 1000 ? '#dc2626' : '#059669' }}>₹{fmt(w.balance)}</td>
-                            <td style={{ color: '#059669', fontWeight: 600 }}>₹{fmt(w.today_inflow)}</td>
-                            <td style={{ color: '#dc2626', fontWeight: 600 }}>₹{fmt(w.today_outflow)}</td>
-                            <td style={{ color: '#059669' }}>₹{fmt(w.month_inflow)}</td>
-                            <td style={{ color: '#dc2626' }}>₹{fmt(w.month_outflow)}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button className="sa-btn sa-btn-primary sa-btn-sm" onClick={() => { setWAction({ id: w.id, name: w.name, mode: 'add' }); setWAmount(''); setWRemarks('') }}>+ Add</button>
-                                <button className="sa-btn sa-btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => { setWAction({ id: w.id, name: w.name, mode: 'deduct' }); setWAmount(''); setWRemarks('') }}>− Deduct</button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {renderWallets(wallets)}
                       </tbody>
                     </table>
                   </div>

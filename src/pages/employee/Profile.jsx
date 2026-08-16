@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import '../dashboard.css'
@@ -100,6 +101,9 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const [redeemErr, setRedeemErr]     = useState('')
   const [redeeming, setRedeeming]     = useState(false)
   const [showCoins, setShowCoins]     = useState(false)
+  
+  const [pendingAssignments, setPendingAssignments] = useState([])
+  const navigate = useNavigate()
 
   const fetchProfile = () => {
     api('/auth/me', { headers: authHeader() })
@@ -113,7 +117,13 @@ export default function Profile({ Sidebar, isAdmin = false }) {
       .catch(() => {})
   }
 
-  useEffect(() => { fetchProfile() }, [])
+  const fetchAssignments = () => {
+    api('/assignments/pending', { headers: authHeader() })
+      .then(d => setPendingAssignments(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }
+
+  useEffect(() => { fetchProfile(); fetchAssignments(); }, [])
   useEffect(() => { if (showCoins) fetchCoins() }, [showCoins])
 
   const handleRedeem = async e => {
@@ -232,6 +242,31 @@ export default function Profile({ Sidebar, isAdmin = false }) {
                 <div className="id-card-strip" />
               </div>
             </div>
+
+            {/* ── ASSIGNMENTS SECTION ── */}
+            {pendingAssignments.length > 0 && (
+              <div style={{ padding: '0 40px 40px' }}>
+                <h3 style={{ fontSize: 18, color: '#1e293b', marginBottom: 15 }}>📋 Pending Assignments</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 15 }}>
+                  {pendingAssignments.map(a => (
+                    <div key={a.id} style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: 16 }}>{a.title}</h4>
+                        {a.description && <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 12px 0' }}>{a.description}</p>}
+                        <div style={{ display: 'flex', gap: 15, fontSize: 12, color: '#475569', marginBottom: 15, fontWeight: 600 }}>
+                          <span>⏱️ {a.time_limit_minutes} Mins</span>
+                          <span>📝 {a.total_questions} Questions</span>
+                        </div>
+                      </div>
+                      <button onClick={() => navigate(`/employee/take-assignment/${a.id}`)} style={{ background: '#402070', color: '#fff', border: 'none', padding: '10px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+                        Start Assignment
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* ── COINS SECTION ── */}
             <div style={{ padding: '0 40px 40px' }}>
               <button

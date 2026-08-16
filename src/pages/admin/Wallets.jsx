@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
-import { useWallets, useAdminConfig } from '../../hooks/useFinance'
+import { useWallets, useAdminConfig, useWalletGroups } from '../../hooks/useFinance'
 import '../../pages/dashboard.css'
 
 const auth = () => ({ Authorization: `Bearer ${getTokenByRole('admin')}` })
@@ -24,6 +24,7 @@ const Modal = ({ title, onClose, children }) => (
 export default function Wallets() {
   const { wallets, loading, refetch } = useWallets()
   const { master } = useAdminConfig()
+  const { walletGroups: rawWG } = useWalletGroups()
   const platforms = master?.platforms?.map(p => p.name) || []
   const [modal, setModal]   = useState(null)
   const [amount, setAmount] = useState('')
@@ -110,8 +111,9 @@ export default function Wallets() {
           </div>
 
           {loading ? <div className="dash-loading">Loading...</div> : (
-            Object.entries(byBranch).map(([branch, bWallets]) => (
-              <div key={branch} style={{ marginBottom: 28 }}>
+            <>
+              {Object.entries(byBranch).map(([branch, bWallets]) => (
+                <div key={branch} style={{ marginBottom: 28 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#402070', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                   🏦 {branch}
                   <span style={{ background: '#ede9fe', color: '#402070', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
@@ -119,70 +121,107 @@ export default function Wallets() {
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 14 }}>
-                  {bWallets.map(w => {
-                    const profit = parseFloat(w.today_inflow||0) - parseFloat(w.today_outflow||0)
-                    return (
-                      <div key={w.id} className="dash-card" style={{ marginBottom: 0, borderTop: `3px solid ${w.wallet_type === 'platform' ? '#402070' : w.wallet_type === 'cash' ? '#059669' : '#0ea5e9'}` }}>
-                        <div className="dash-card-header">
-                          <div>
-                            <h2 style={{ fontSize: 14, margin: 0 }}>
-                              {w.wallet_type === 'platform' ? '🏢' : w.wallet_type === 'cash' ? '💵' : '🏦'} {w.name}
-                            </h2>
-                            {w.platform && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Platform: {w.platform}</div>}
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 20, fontWeight: 900, color: parseFloat(w.balance) >= 0 ? '#402070' : '#dc2626' }}>
-                              ₹{fmt(w.balance)}
-                            </div>
-                            <div style={{ fontSize: 10, color: '#9ca3af' }}>Current Balance</div>
-                          </div>
-                        </div>
+                  {(() => {
+                    const groups = (rawWG || []).map(g => ({ ...g, walletIds: (g.wallet_ids || []).map(Number) }))
+                    const usedIds = new Set()
+                    const cards = []
 
-                        <div className="dash-card-body" style={{ paddingTop: 8 }}>
-                          {/* Today's flow */}
-                          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Today's Flow</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
-                              <div>
-                                <div style={{ fontSize: 11, color: '#059669', fontWeight: 800 }}>+₹{fmt(w.today_inflow||0)}</div>
-                                <div style={{ fontSize: 10, color: '#9ca3af' }}>Inflow</div>
+                    groups.forEach(g => {
+                      const gw = bWallets.filter(w => g.walletIds.includes(w.id))
+                      if (gw.length > 0) {
+                        gw.forEach(w => usedIds.add(w.id))
+                        cards.push({
+                          id: `group-${g.id}`,
+                          name: g.name,
+                          balance: gw.reduce((s, w) => s + parseFloat(w.balance || 0), 0),
+                          today_inflow: gw.reduce((s, w) => s + parseFloat(w.today_inflow || 0), 0),
+                          today_outflow: gw.reduce((s, w) => s + parseFloat(w.today_outflow || 0), 0),
+                          month_inflow: gw.reduce((s, w) => s + parseFloat(w.month_inflow || 0), 0),
+                          month_outflow: gw.reduce((s, w) => s + parseFloat(w.month_outflow || 0), 0),
+                          today_txns: gw.reduce((s, w) => s + parseInt(w.today_txns || 0, 10), 0),
+                          isGroup: true,
+                          count: gw.length,
+                          wallet_type: 'platform',
+                        })
+                      }
+                    })
+
+                    bWallets.forEach(w => {
+                      if (!usedIds.has(w.id)) cards.push(w)
+                    })
+
+                    return cards.map(w => {
+                      const profit = parseFloat(w.today_inflow||0) - parseFloat(w.today_outflow||0)
+                      return (
+                        <div key={w.id} className="dash-card" style={{ marginBottom: 0, borderTop: `3px solid ${w.wallet_type === 'platform' ? '#402070' : w.wallet_type === 'cash' ? '#059669' : '#0ea5e9'}` }}>
+                          <div className="dash-card-header">
+                            <div>
+                              <h2 style={{ fontSize: 14, margin: 0 }}>
+                                {w.wallet_type === 'platform' ? '🏢' : w.wallet_type === 'cash' ? '💵' : '🏦'} {w.name}
+                              </h2>
+                              {w.isGroup ? (
+                                <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 2, fontWeight: 700 }}>{w.count} Wallets Merged</div>
+                              ) : w.platform && (
+                                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Platform: {w.platform}</div>
+                              )}
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 20, fontWeight: 900, color: parseFloat(w.balance) >= 0 ? '#402070' : '#dc2626' }}>
+                                ₹{fmt(w.balance)}
                               </div>
-                              <div>
-                                <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 800 }}>-₹{fmt(w.today_outflow||0)}</div>
-                                <div style={{ fontSize: 10, color: '#9ca3af' }}>Outflow</div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: 11, color: profit >= 0 ? '#d4af37' : '#dc2626', fontWeight: 800 }}>
-                                  {profit >= 0 ? '+' : ''}₹{fmt(profit)}
+                              <div style={{ fontSize: 10, color: '#9ca3af' }}>Current Balance</div>
+                            </div>
+                          </div>
+
+                          <div className="dash-card-body" style={{ paddingTop: 8 }}>
+                            {/* Today's flow */}
+                            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Today's Flow</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#059669', fontWeight: 800 }}>+₹{fmt(w.today_inflow||0)}</div>
+                                  <div style={{ fontSize: 10, color: '#9ca3af' }}>Inflow</div>
                                 </div>
-                                <div style={{ fontSize: 10, color: '#9ca3af' }}>Net Profit</div>
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 800 }}>-₹{fmt(w.today_outflow||0)}</div>
+                                  <div style={{ fontSize: 10, color: '#9ca3af' }}>Outflow</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 11, color: profit >= 0 ? '#d4af37' : '#dc2626', fontWeight: 800 }}>
+                                    {profit >= 0 ? '+' : ''}₹{fmt(profit)}
+                                  </div>
+                                  <div style={{ fontSize: 10, color: '#9ca3af' }}>Net Profit</div>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Month stats */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginBottom: 12 }}>
-                            <span>Month In: <strong style={{ color: '#059669' }}>₹{fmt(w.month_inflow||0)}</strong></span>
-                            <span>Month Out: <strong style={{ color: '#dc2626' }}>₹{fmt(w.month_outflow||0)}</strong></span>
-                            <span>Txns: <strong style={{ color: '#402070' }}>{w.today_txns||0}</strong></span>
-                          </div>
+                            {/* Month stats */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginBottom: 12 }}>
+                              <span>Month In: <strong style={{ color: '#059669' }}>₹{fmt(w.month_inflow||0)}</strong></span>
+                              <span>Month Out: <strong style={{ color: '#dc2626' }}>₹{fmt(w.month_outflow||0)}</strong></span>
+                              <span>Txns: <strong style={{ color: '#402070' }}>{w.today_txns||0}</strong></span>
+                            </div>
 
-                          {/* Actions */}
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="dash-btn dash-btn-success dash-btn-sm" style={{ flex: 1 }}
-                              onClick={() => { reset(); setModal({ type: 'add', wallet: w }) }}>➕ Add</button>
-                            <button className="dash-btn dash-btn-danger dash-btn-sm" style={{ flex: 1 }}
-                              onClick={() => { reset(); setModal({ type: 'deduct', wallet: w }) }}>➖ Deduct</button>
-                            <button className="dash-btn dash-btn-sm" style={{ flex: 1, background: '#f0f2f8', color: '#402070', border: 'none' }}
-                              onClick={() => { reset(); setModal({ type: 'transfer', wallet: w }) }}>🔄</button>
+                            {/* Actions - Hidden for groups per user request */}
+                            {!w.isGroup && (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button className="dash-btn dash-btn-success dash-btn-sm" style={{ flex: 1 }}
+                                  onClick={() => { reset(); setModal({ type: 'add', wallet: w }) }}>➕ Add</button>
+                                <button className="dash-btn dash-btn-danger dash-btn-sm" style={{ flex: 1 }}
+                                  onClick={() => { reset(); setModal({ type: 'deduct', wallet: w }) }}>➖ Deduct</button>
+                                <button className="dash-btn dash-btn-sm" style={{ flex: 1, background: '#f0f2f8', color: '#402070', border: 'none' }}
+                                  onClick={() => { reset(); setModal({ type: 'transfer', wallet: w }) }}>🔄</button>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })
+                  })()}
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )}
 
           {!loading && !wallets.length && (

@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     '/customer/dashboard', '/customer/services', '/customer/transactions',
     '/customer/coins', '/customer/kyc', '/customer/offers',
     '/customer/notifications', '/customer/support', '/customer/security',
+    '/customer/register',
   ]
 
   return {
@@ -40,6 +41,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/master':         { target: backendUrl, changeOrigin: true },
+        '/assignments':    { target: backendUrl, changeOrigin: true },
         '/superadmin': {
           target: backendUrl,
           changeOrigin: true,
@@ -66,6 +68,20 @@ export default defineConfig(({ mode }) => {
         },
         '/visitors':       { target: backendUrl, changeOrigin: true },
         '/upload':         { target: backendUrl, changeOrigin: true },
+        '/gallery': {
+          target: backendUrl,
+          changeOrigin: true,
+          bypass(req) {
+            if (req.method === 'GET' && req.headers.accept?.includes('text/html')) return '/index.html'
+          },
+        },
+        '/careers': {
+          target: backendUrl,
+          changeOrigin: true,
+          bypass(req) {
+            if (req.method === 'GET' && req.headers.accept?.includes('text/html')) return '/index.html'
+          },
+        },
       },
     },
   }

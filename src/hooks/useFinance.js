@@ -143,6 +143,39 @@ export function useWallets() {
   return { wallets: data ?? [], loading, msg, error, createWallet, addMoney, deductMoney, transfer, refetch: bust }
 }
 
+// ── useWalletGroups ───────────────────────────────────────────
+export function useWalletGroups() {
+  const authAny = () => {
+    const t = getTokenByRole('superadmin') || getTokenByRole('admin')
+    return { Authorization: `Bearer ${t}` }
+  }
+  const { data, loading, refetch } = useSWR(
+    'fin:walletGroups',
+    () => api('/finance/wallet-groups', { headers: authAny() }),
+    TTL.list
+  )
+  const bust = () => { cacheClear('fin:walletGroups'); refetch() }
+
+  const createGroup = async (name, walletIds) => {
+    await api('/finance/wallet-groups', {
+      method: 'POST',
+      headers: authAny(),
+      body: JSON.stringify({ name, walletIds })
+    })
+    bust()
+  }
+
+  const deleteGroup = async (id) => {
+    await api(`/finance/wallet-groups/${id}`, {
+      method: 'DELETE',
+      headers: authAny()
+    })
+    bust()
+  }
+
+  return { walletGroups: data ?? [], loading, createGroup, deleteGroup, refetch: bust }
+}
+
 // ── useSettlements ────────────────────────────────────────────
 export function useSettlements(status = '') {
   const { data, loading, refetch } = useSWR(

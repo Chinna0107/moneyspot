@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import { api } from '../../utils/api'
 import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
-import { useFinanceSummary, useFinanceData, useFinanceAlerts, useWallets, useFinanceControl } from '../../hooks/useFinance'
+import { useFinanceSummary, useFinanceData, useFinanceAlerts, useWallets, useFinanceControl, useWalletGroups } from '../../hooks/useFinance'
 import '../../pages/dashboard.css'
 
 const fmt    = n => Number(parseFloat(n)||0).toLocaleString('en-IN')
@@ -100,6 +100,7 @@ export default function FinanceDashboard() {
   const { ledger, expenses, expSummary, serviceSummary, daily, totals, loading, refetch } = useFinanceData(from, to)
   const { alerts } = useFinanceAlerts()
   const { wallets, loading: wl, addMoney, msg: wMsg, error: wErr } = useWallets()
+  const { walletGroups: rawWG } = useWalletGroups()
 
   const maxDaily = Math.max(1, ...daily.map(d => d.amount))
 
@@ -189,19 +190,48 @@ export default function FinanceDashboard() {
           </div>
 
           {/* Wallets row */}
-          {!wl && wallets.length > 0 && (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12, marginBottom:20 }}>
-              {wallets.map(w => (
-                <div key={w.id} style={{ background:'#f8fafc', borderRadius:12, padding:'14px 16px', border:'1.5px solid #e2e8f0' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:4 }}>{w.name}</div>
-                  <div style={{ fontSize:20, fontWeight:900, color:'#402070' }}>₹{fmt(w.balance)}</div>
-                  <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>
-                    ↑ ₹{fmt(w.today_inflow)} today · ↓ ₹{fmt(w.today_outflow)} today
+          {!wl && wallets.length > 0 && (() => {
+            const groups = (rawWG || []).map(g => ({ ...g, walletIds: (g.wallet_ids || []).map(Number) }))
+            const usedIds = new Set()
+            const cards = []
+
+            groups.forEach(g => {
+              const gw = wallets.filter(w => g.walletIds.includes(w.id))
+              if (gw.length > 0) {
+                gw.forEach(w => usedIds.add(w.id))
+                cards.push({
+                  id: `group-${g.id}`,
+                  name: g.name,
+                  balance: gw.reduce((s, w) => s + parseFloat(w.balance || 0), 0),
+                  today_inflow: gw.reduce((s, w) => s + parseFloat(w.today_inflow || 0), 0),
+                  today_outflow: gw.reduce((s, w) => s + parseFloat(w.today_outflow || 0), 0),
+                  isGroup: true,
+                  count: gw.length,
+                })
+              }
+            })
+
+            wallets.forEach(w => {
+              if (!usedIds.has(w.id)) cards.push(w)
+            })
+
+            return (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12, marginBottom:20 }}>
+                {cards.map(w => (
+                  <div key={w.id} style={{ background: w.isGroup ? 'linear-gradient(135deg,#f5f0ff,#ede9fe)' : '#f8fafc', borderRadius:12, padding:'14px 16px', border: w.isGroup ? '1.5px solid #c4b5fd' : '1.5px solid #e2e8f0' }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:4, display:'flex', alignItems:'center', gap:6 }}>
+                      {w.name}
+                      {w.isGroup && <span style={{ background:'#ede9fe', color:'#7c3aed', fontSize:9, padding:'1px 6px', borderRadius:10, fontWeight:800 }}>{w.count} merged</span>}
+                    </div>
+                    <div style={{ fontSize:20, fontWeight:900, color: w.isGroup ? '#7c3aed' : '#402070' }}>₹{fmt(w.balance)}</div>
+                    <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>
+                      ↑ ₹{fmt(w.today_inflow)} today · ↓ ₹{fmt(w.today_outflow)} today
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Tabs */}
           <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>

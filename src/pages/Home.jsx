@@ -384,16 +384,16 @@ export default function Home() {
   const [popup, setPopup] = useState(false)
 
   // Show popup after 1.5s, only once per session
-  useEffect(() => {
-    if (sessionStorage.getItem('axis_popup_seen')) return
-    const t = setTimeout(() => setPopup(true), 1500)
-    return () => clearTimeout(t)
-  }, [])
+  // useEffect(() => {
+  //   if (sessionStorage.getItem('axis_popup_seen')) return
+  //   const t = setTimeout(() => setPopup(true), 1500)
+  //   return () => clearTimeout(t)
+  // }, [])
 
-  const closePopup = () => {
-    setPopup(false)
-    sessionStorage.setItem('axis_popup_seen', '1')
-  }
+  // const closePopup = () => {
+  //   setPopup(false)
+  //   sessionStorage.setItem('axis_popup_seen', '1')
+  // }
 
   useEffect(() => {
     const ctx = gsap.context(() => {

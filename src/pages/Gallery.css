@@ -1,0 +1,10 @@
+/* Additional public gallery-specific tweaks (main styles in superadmin/Gallery.css) */
+
+/* Entrance animation for gallery cards */
+.pub-gallery-card {
+  animation: cardIn 0.4s ease both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

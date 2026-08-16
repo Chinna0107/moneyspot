@@ -31,12 +31,16 @@ export function useRoleBasedAuth() {
   }
 
   const logout = (role) => {
+    const wg = localStorage.getItem('sa:walletGroups')
     localStorage.clear()
+    if (wg) localStorage.setItem('sa:walletGroups', wg)
     setAuthData(null)
   }
 
   const logoutAll = () => {
+    const wg = localStorage.getItem('sa:walletGroups')
     localStorage.clear()
+    if (wg) localStorage.setItem('sa:walletGroups', wg)
     setAuthData(null)
   }
 

@@ -112,7 +112,7 @@ export default function CustomerInfo() {
             ) : (
               <table className="dash-table">
                 <thead>
-                  <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Documents</th><th>Status</th><th>Date</th></tr>
+                  <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Documents</th><th>Status</th><th>Date</th></tr>
                 </thead>
                 <tbody>
                   {filtered.map(c => (
@@ -124,6 +124,7 @@ export default function CustomerInfo() {
                       <td style={{ fontSize:12 }}>{c.phone}</td>
                       <td style={{ fontSize:12 }}>{c.pan}</td>
                       <td style={{ fontSize:12 }}>{c.branch || '—'}</td>
+                      <td style={{ fontSize:12 }}>{c.source || '—'}</td>
                       <td>
                         <div className="ci-doc-thumbs">
                           {c.aadhar_img_url
@@ -169,7 +170,7 @@ export default function CustomerInfo() {
                   <div style={{ color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Customer Profile</div>
                   <div style={{ color:'#fff', fontWeight:900, fontSize:20, marginTop:2 }}>{selected.name}</div>
                   <div style={{ color:'rgba(255,255,255,0.6)', fontSize:12, marginTop:2 }}>
-                    {selected.phone} · {selected.pan} · {selected.branch || '—'}
+                    {selected.phone} · {selected.pan} · {selected.branch || '—'} · {selected.source || '—'}
                   </div>
                   <span style={statusStyle(selected.status)}>{selected.status}</span>
                 </div>

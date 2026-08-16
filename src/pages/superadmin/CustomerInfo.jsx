@@ -130,6 +130,7 @@ export default function SACustomerInfo() {
                         <th>Phone</th>
                         <th>PAN</th>
                         <th>Branch</th>
+                        <th>Source</th>
                         <th>Transactions</th>
                         <th>Total Value</th>
                         <th>Coins</th>
@@ -150,6 +151,7 @@ export default function SACustomerInfo() {
                           <td style={{ fontSize: 13 }}>{c.phone}</td>
                           <td style={{ fontFamily: 'monospace', fontSize: 12, color: '#402070', fontWeight: 700 }}>{c.pan}</td>
                           <td><span style={{ background: '#ede9fe', color: '#402070', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{c.branch || '—'}</span></td>
+                          <td style={{ fontSize: 12 }}>{c.source || '—'}</td>
                           <td style={{ fontWeight: 700, color: '#374151' }}>{fmt(c.txn_count || 0)}</td>
                           <td style={{ color: '#059669', fontWeight: 700 }}>{fmtV(c.total_amount || 0)}</td>
                           <td style={{ color: '#d4af37', fontWeight: 700 }}>🪙 {fmt(c.coins || 0)}</td>
@@ -198,7 +200,7 @@ export default function SACustomerInfo() {
                   <div>
                     <div style={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>{selected.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>
-                      {selected.phone} · <span style={{ fontFamily: 'monospace' }}>{selected.pan}</span>
+                      {selected.phone} · <span style={{ fontFamily: 'monospace' }}>{selected.pan}</span> · {selected.source || '—'}
                     </div>
                     <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <Badge status={selected.status} />

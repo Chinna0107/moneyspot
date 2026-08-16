@@ -160,7 +160,7 @@ const sections = [
       },
       {
         subtitle: 'Reach Us',
-        text: 'Email: support@moneyspot.in | Phone: +91 98664 40477 | Branches: Kadapa, Anantapur & Bangalore',
+        text: 'Email: support@moneyspotfintech.com | Phone: +91 98664 40477 | Branches: Kadapa, Anantapur & Bangalore',
       },
     ],
   },

@@ -21,7 +21,7 @@ const branches = [
     address: 'MoneySpot Fintech Services, Kadapa, Andhra Pradesh',
     phone: '+91 90002 06618',
     whatsapp: '919000206618',
-    hours: 'Mon–Sat: 9AM–7PM',
+    hours: 'Mon–Sat: 9AM–9PM',
     color: '#2b77e6',
     mapSrc: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d243647.3!2d78.8241!3d14.4673!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bb14b1b3b3b3b3b%3A0x3b3b3b3b3b3b3b3b!2sKadapa%2C%20Andhra%20Pradesh!5e0!3m2!1sen!2sin!4v1700000000000',
     mapsLink: 'https://share.google/dHzpRwNUH5Rk559ti',
@@ -32,7 +32,7 @@ const branches = [
     address: 'MoneySpot Fintech Services, Anantapur, Andhra Pradesh',
     phone: '+91 99599 55416',
     whatsapp: '919959955416',
-    hours: 'Mon–Sat: 9AM–7PM',
+    hours: 'Mon–Sat: 9AM–9PM',
     color: '#d97706',
     mapSrc: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d243647.3!2d77.6006!3d14.6819!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bb5a9b1b1b1b1b1%3A0x1b1b1b1b1b1b1b1b!2sAnantapur%2C%20Andhra%20Pradesh!5e0!3m2!1sen!2sin!4v1700000000001',
     mapsLink: 'https://share.google/JuIQjvvCJkA3V2sLx',
@@ -43,7 +43,7 @@ const branches = [
     address: 'MoneySpot Fintech Services, Bangalore, Karnataka',
     phone: '+91 99025 78939',
     whatsapp: '919902578939',
-    hours: 'Mon–Sat: 9AM–7PM',
+    hours: 'Mon–Sat: 9AM–9PM',
     color: '#10b981',
     mapSrc: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d497698.9!2d77.3522!3d12.9716!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670c9b44e6d%3A0xf8dfc3e8517e4fe0!2sBengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1700000000002',
     mapsLink: 'https://share.google/kfD0BY5SsVtJC2OOA',
@@ -51,10 +51,10 @@ const branches = [
 ]
 
 const infoItems = [
-  { icon: <FaPhoneAlt />,     label: 'Phone',         value: PHONE_DISPLAY,                href: `tel:${PHONE}` },
-  { icon: <FaWhatsapp />,     label: 'WhatsApp',      value: PHONE_DISPLAY,                href: `https://wa.me/${PHONE.replace('+','')}` },
-  { icon: <FaEnvelope />,     label: 'Email',         value: 'support@moneyspot.in',       href: 'mailto:support@moneyspot.in' },
-  { icon: <FaClock />,        label: 'Working Hours', value: 'Mon–Sat: 9AM–7PM | Sun: 10AM–4PM' },
+  { icon: <FaPhoneAlt />, label: 'Phone', value: PHONE_DISPLAY, href: `tel:${PHONE}` },
+  { icon: <FaWhatsapp />, label: 'WhatsApp', value: PHONE_DISPLAY, href: `https://wa.me/${PHONE.replace('+', '')}` },
+  { icon: <FaEnvelope />, label: 'Email', value: 'support@moneyspotfintech.com', href: 'mailto:support@moneyspotfintech.com' },
+  { icon: <FaClock />, label: 'Working Hours', value: 'Mon–Sat: 9AM–9PM | Sun: 10AM–8:45PM' },
 ]
 
 export default function Contact() {
@@ -68,14 +68,14 @@ export default function Contact() {
 
   useEffect(() => {
     gsap.fromTo('.contact-hero-badge', { opacity: 0, y: -30, scale: 0.8 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'back.out(1.7)' })
-    gsap.fromTo('.contact-hero h1',    { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.9, delay: 0.2, ease: 'power4.out' })
-    gsap.fromTo('.contact-hero p',     { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, delay: 0.45, ease: 'power3.out' })
+    gsap.fromTo('.contact-hero h1', { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.9, delay: 0.2, ease: 'power4.out' })
+    gsap.fromTo('.contact-hero p', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, delay: 0.45, ease: 'power3.out' })
 
     const ctx = gsap.context(() => {
-      gsap.fromTo('.contact-info',      { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '.contact-body', start: 'top 82%' } })
-      gsap.fromTo('.contact-form-wrap', { opacity: 0, x: 60  }, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '.contact-body', start: 'top 82%' } })
-      gsap.fromTo('.info-item',         { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.1, ease: 'power3.out', scrollTrigger: { trigger: '.contact-info', start: 'top 80%' } })
-      gsap.fromTo('.branch-card',       { opacity: 0, y: 40  }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'back.out(1.3)', scrollTrigger: { trigger: '.branches-grid', start: 'top 85%' } })
+      gsap.fromTo('.contact-info', { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '.contact-body', start: 'top 82%' } })
+      gsap.fromTo('.contact-form-wrap', { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '.contact-body', start: 'top 82%' } })
+      gsap.fromTo('.info-item', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.1, ease: 'power3.out', scrollTrigger: { trigger: '.contact-info', start: 'top 80%' } })
+      gsap.fromTo('.branch-card', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'back.out(1.3)', scrollTrigger: { trigger: '.branches-grid', start: 'top 85%' } })
     })
     return () => ctx.revert()
   }, [])
@@ -95,7 +95,7 @@ export default function Contact() {
             <a href={`tel:${PHONE}`} className="contact-hero-btn contact-hero-btn-primary">
               <FaPhoneAlt size={14} /> Call Now
             </a>
-            <a href={`https://wa.me/${PHONE.replace('+','')}`} target="_blank" rel="noopener noreferrer" className="contact-hero-btn contact-hero-btn-wa">
+            <a href={`https://wa.me/${PHONE.replace('+', '')}`} target="_blank" rel="noopener noreferrer" className="contact-hero-btn contact-hero-btn-wa">
               <FaWhatsapp size={16} /> WhatsApp
             </a>
           </div>
@@ -121,7 +121,7 @@ export default function Contact() {
             </div>
           ))}
           <div className="contact-socials">
-            <a href={`https://wa.me/${PHONE.replace('+','')}`} target="_blank" rel="noopener noreferrer" className="social-btn social-wa"><FaWhatsapp /> WhatsApp</a>
+            <a href={`https://wa.me/${PHONE.replace('+', '')}`} target="_blank" rel="noopener noreferrer" className="social-btn social-wa"><FaWhatsapp /> WhatsApp</a>
             <a href="https://www.instagram.com/moneyspot_official" target="_blank" rel="noopener noreferrer" className="social-btn social-ig"><FaInstagram /> Instagram</a>
             {/* <a href="#" className="social-btn social-fb"><FaFacebookF /> Facebook</a> */}
           </div>
@@ -212,7 +212,7 @@ export default function Contact() {
                     </div>
                     <div className="branch-detail-item">
                       <FaPhoneAlt size={12} />
-                      <a href={`tel:${b.phone.replace(/\s/g,'')}`}>{b.phone}</a>
+                      <a href={`tel:${b.phone.replace(/\s/g, '')}`}>{b.phone}</a>
                     </div>
                     <div className="branch-detail-item">
                       <FaClock size={12} />
@@ -221,7 +221,7 @@ export default function Contact() {
                   </div>
 
                   <div className="branch-actions">
-                    <a href={`tel:${b.phone.replace(/\s/g,'')}`} className="branch-btn branch-btn-call">
+                    <a href={`tel:${b.phone.replace(/\s/g, '')}`} className="branch-btn branch-btn-call">
                       <FaPhoneAlt size={12} /> Call
                     </a>
                     <a href={`https://wa.me/${b.whatsapp}`} target="_blank" rel="noopener noreferrer" className="branch-btn branch-btn-wa">

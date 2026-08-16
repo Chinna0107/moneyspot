@@ -5,7 +5,15 @@ import { getTokenByRole, getUserByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
 import '../../pages/dashboard.css'
 
-const empty = { name: '', email: '', mobile: '', pan: '', aadhar: '', password: '', confirm_password: '', mpin: '', is_admin: false, role: '', pan_img_url: '', aadhar_img_url: '', docx_url: '', resume_url: '', photo_url: '' }
+const empty = { 
+  name: '', email: '', mobile: '', pan: '', aadhar: '', password: '', confirm_password: '', mpin: '', is_admin: false, role: '', pan_img_url: '', aadhar_img_url: '', docx_url: '', resume_url: '', photo_url: '',
+  permissions: {
+    services: ["Domestic Money Transfer", "Bill Pay + Withdrawal", "Card Withdrawal", "AEPS", "Micro ATM", "Indo-Nepal", "Cash Deposit", "Prepaid Card", "Travel Booking", "Fastag", "PAN Card", "Account Opening", "Insurance", "Credit Card Bill"],
+    features: ["Customer Requests", "Attendance", "All Transactions", "Expenses Management", "Pending Payments", "Customer Reminders"]
+  }
+}
+const allServices = ["Domestic Money Transfer", "Bill Pay + Withdrawal", "Card Withdrawal", "AEPS", "Cibil Enquiry Fees"];
+const allFeatures = ["Customer Requests", "Attendance", "All Transactions", "Expenses Management", "Pending Payments", "Customer Reminders"];
 
 export default function CreateEmployee() {
   const [form, setForm]     = useState(empty)
@@ -16,6 +24,20 @@ export default function CreateEmployee() {
   const user = getUserByRole('admin')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const toggleService = (s) => setForm(f => {
+    const services = f.permissions.services.includes(s) 
+      ? f.permissions.services.filter(x => x !== s) 
+      : [...f.permissions.services, s];
+    return { ...f, permissions: { ...f.permissions, services } };
+  });
+
+  const toggleFeature = (feat) => setForm(f => {
+    const features = f.permissions.features.includes(feat) 
+      ? f.permissions.features.filter(x => x !== feat) 
+      : [...f.permissions.features, feat];
+    return { ...f, permissions: { ...f.permissions, features } };
+  });
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -139,6 +161,34 @@ export default function CreateEmployee() {
                     <CloudinaryUpload label="Photo" icon="📸" value={form.photo_url}
                       folder="moneyspot/employees" onUpload={(url) => set('photo_url', url)}
                       accept="image/jpeg,image/png,image/webp" />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 24 }}>
+                  <h3 style={{ fontSize: 16, color: '#1a0a2e', marginBottom: 12 }}>Access Control (Permissions)</h3>
+                  
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1.5px solid #e2e8f0', marginBottom: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#402070', marginBottom: 12 }}>Allowed Services</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                      {allServices.map(s => (
+                        <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', background: '#fff', padding: '6px 12px', borderRadius: 20, border: '1px solid #cbd5e1' }}>
+                          <input type="checkbox" checked={form.permissions?.services?.includes(s)} onChange={() => toggleService(s)} />
+                          {s}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1.5px solid #e2e8f0', marginBottom: 24 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#402070', marginBottom: 12 }}>Allowed Features</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                      {allFeatures.map(feat => (
+                        <label key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', background: '#fff', padding: '6px 12px', borderRadius: 20, border: '1px solid #cbd5e1' }}>
+                          <input type="checkbox" checked={form.permissions?.features?.includes(feat)} onChange={() => toggleFeature(feat)} />
+                          {feat}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <button type="submit" className="dash-btn dash-btn-primary"

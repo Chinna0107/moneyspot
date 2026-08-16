@@ -20,6 +20,7 @@ const SERVICE_ICONS = {
 }
 
 const COLORS = ['#402070','#c02040','#d4af37','#059669','#0ea5e9','#f59e0b','#8b5cf6','#ec4899']
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 // ── Txn Detail Modal ────────────────────────────────────────────────────
 function TxnDetailModal({ txn, onClose }) {
@@ -145,10 +146,11 @@ function GroupTxnsModal({ label, name, txns, onClose, onViewTxn }) {
 
 export default function EmployeeReports() {
   const [data, setData]               = useState(null)
+  const [targetHistory, setTargetHistory] = useState([])
   const [loading, setLoading]         = useState(true)
   const [from, setFrom]               = useState(monthStart)
   const [to, setTo]                   = useState(today)
-  const [tab, setTab]                 = useState('service')
+  const [tab, setTab]                 = useState('service') // 'service', 'platform', 'txns', 'targets'
   const [selectedTxn, setSelectedTxn] = useState(null)
   const [groupTxns, setGroupTxns]     = useState(null)
   const [search, setSearch]           = useState('')
@@ -158,8 +160,16 @@ export default function EmployeeReports() {
   const load = useCallback(() => {
     setLoading(true)
     const p = new URLSearchParams({ from, to })
-    api(`/dashboard/reports?${p}`, { headers: auth() })
-      .then(d => { setData(d); setLoading(false) })
+    
+    Promise.all([
+      api(`/dashboard/reports?${p}`, { headers: auth() }),
+      api(`/dashboard/employee/target-history`, { headers: auth() })
+    ])
+      .then(([d, t]) => {
+        setData(d)
+        setTargetHistory(t || [])
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [from, to])
 
@@ -324,6 +334,7 @@ export default function EmployeeReports() {
           <button className={`er-tab ${tab === 'service'  ? 'active' : ''}`} onClick={() => setTab('service')}>🔧 Service-wise</button>
           <button className={`er-tab ${tab === 'platform' ? 'active' : ''}`} onClick={() => setTab('platform')}>📱 Platform-wise</button>
           <button className={`er-tab ${tab === 'txns'     ? 'active' : ''}`} onClick={() => setTab('txns')}>📋 Transactions</button>
+          <button className={`er-tab ${tab === 'targets'  ? 'active' : ''}`} onClick={() => setTab('targets')}>🎯 Targets</button>
           <div className="er-tab-actions">
             <button className="er-btn er-btn-sm er-btn-excel" onClick={exportExcel}><MdDownload size={14} /> Excel</button>
             <button className="er-btn er-btn-sm er-btn-pdf"   onClick={exportPDF}><MdDownload size={14} /> PDF</button>
@@ -335,6 +346,52 @@ export default function EmployeeReports() {
           <div className="er-skeleton-wrap">
             {[1,2,3,4].map(i => <div key={i} className="er-skel" style={{ animationDelay: `${i*80}ms` }} />)}
           </div>
+        ) : tab === 'targets' ? (
+          targetHistory.length === 0 ? (
+            <div className="er-empty">
+              <div className="er-empty-icon">🎯</div>
+              <div>No target history found.</div>
+            </div>
+          ) : (
+            <div className="er-table-card">
+              <div className="er-table-header">
+                <h2>🎯 Performance vs Targets (Last 6 Months)</h2>
+              </div>
+              <div className="er-table-wrap">
+                <table className="er-table">
+                  <thead>
+                    <tr><th>Month</th><th>Target Amount</th><th>Achieved Amount</th><th>% Reached</th><th>Customers Added</th></tr>
+                  </thead>
+                  <tbody>
+                    {targetHistory.map((t, i) => {
+                      const pct = t.target_amount > 0 ? ((t.achieved_amount / t.target_amount) * 100).toFixed(1) : (t.achieved_amount > 0 ? 100 : 0)
+                      return (
+                        <tr key={`${t.year}-${t.month}`} className="er-tr">
+                          <td><strong>{MONTHS[t.month-1]} {t.year}</strong></td>
+                          <td style={{ color:'#402070', fontWeight:600 }}>{t.target_amount > 0 ? `₹${fmt(t.target_amount)}` : 'Not Set'}</td>
+                          <td style={{ color:'#059669', fontWeight:700 }}>₹{fmt(t.achieved_amount)}</td>
+                          <td>
+                            {t.target_amount > 0 ? (
+                              <span style={{ 
+                                background: pct >= 100 ? '#d1fae5' : (pct >= 50 ? '#fef3c7' : '#fee2e2'),
+                                color: pct >= 100 ? '#059669' : (pct >= 50 ? '#d97706' : '#dc2626'),
+                                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 
+                              }}>
+                                {pct}%
+                              </span>
+                            ) : (
+                              <span style={{ color: '#9ca3af', fontSize: 13 }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight:600 }}>{t.customers_added}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
         ) : tab === 'txns' ? (
           txns.length === 0 ? (
             <div className="er-empty">

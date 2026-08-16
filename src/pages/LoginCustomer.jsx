@@ -87,6 +87,13 @@ export default function LoginCustomer() {
             <a href="https://wa.me/919866440477?text=Hi%20MoneySpot%2C%20I%20need%20help%20with%20login." target="_blank" rel="noopener noreferrer" className="lcs-btn lcs-wa">💬 WhatsApp</a>
             <a href="tel:+919866440477" className="lcs-btn lcs-call">📞 Call Us</a>
           </div>
+
+          {/* <div style={{ marginTop: 24, textAlign: 'center' }}>
+            <p className="login-sub" style={{ display: 'inline-block', marginBottom: 0 }}>Don't have an account?</p>
+            <button type="button" onClick={() => navigate('/customer/register')} style={{ background: 'none', border: 'none', color: '#402070', fontWeight: 700, fontSize: 14, marginLeft: 8, cursor: 'pointer', textDecoration: 'underline' }}>
+              Register Here
+            </button>
+          </div> */}
         </div>
       </div>
     </div>

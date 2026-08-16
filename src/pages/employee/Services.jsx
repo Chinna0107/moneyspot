@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
 import { api } from '../../utils/api'
-import { getTokenByRole } from '../../utils/tokenUtils'
+import { getTokenByRole, getUserByRole } from '../../utils/tokenUtils'
 import { useCharges } from '../../hooks/useCharges'
 import { cacheGet, cacheSet, TTL } from '../../utils/cache'
 import '../../pages/dashboard.css'
@@ -24,7 +24,7 @@ const emptyForm = {
   bill_platform: '', bill_amount: '', bill_remaining: '', total_collected: '', received_mode: '',
   platform: '', card: '', card_bank: '', card_last4: '', payment_mode: '', amount: '',
   charges_pct: '', charges_amount: '', settled_amount: '',
-  bank: '', acc_no: '',
+  bank: '', acc_no: '', bill_due_date: '',
 }
 
 export default function Services() {
@@ -48,10 +48,31 @@ export default function Services() {
   const [attLoading, setAttLoading]   = useState(true)
   const [attFetched, setAttFetched]   = useState(false)
   const [checkingIn, setCheckingIn]   = useState(false)
+  const [currentUser, setCurrentUser] = useState(getUserByRole('employee') || getUserByRole('admin'))
 
   const { lookup } = useCharges()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Fetch fresh permissions from server on mount — no re-login needed
+  useEffect(() => {
+    const role  = currentUser?.is_admin ? 'admin' : 'employee'
+    const token = getTokenByRole(role) || getTokenByRole('employee')
+    if (!token) return
+    api('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(data => {
+        if (data?.permissions) {
+          const stored = localStorage.getItem(`${role}_auth`)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            parsed.user = { ...parsed.user, permissions: data.permissions }
+            localStorage.setItem(`${role}_auth`, JSON.stringify(parsed))
+          }
+          setCurrentUser(prev => ({ ...prev, permissions: data.permissions }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Fetch today's attendance on mount
   useEffect(() => {
@@ -65,16 +86,24 @@ export default function Services() {
     setCheckingIn(true); setError('')
     try {
       await api('/dashboard/attendance/mark', { method: 'POST', headers: { ...auth(), 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'check_in' }) })
+    } catch (e) {
+      // If already checked in, still refresh — don't block
+      if (!e.message?.includes('Already checked in')) {
+        if (e.message?.includes('foreign key') || e.message?.includes('violates')) {
+          setError('Session error — please log out and log back in.')
+        } else {
+          setError(e.message)
+        }
+        setCheckingIn(false)
+        return
+      }
+    }
+    // Refresh attendance state regardless
+    try {
       const d = await api('/dashboard/employee/stats', { headers: auth() })
       setAttendance(d?.attendance ?? null)
       setAttFetched(true)
-    } catch (e) {
-      if (e.message?.includes('foreign key') || e.message?.includes('violates')) {
-        setError('Session error — please log out and log back in.')
-      } else {
-        setError(e.message)
-      }
-    }
+    } catch {}
     setCheckingIn(false)
   }
 
@@ -301,13 +330,16 @@ export default function Services() {
               <div className="dash-card-header">
                 <h2>👤 Customer Details</h2>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {['search', 'manual'].map(m => (
-                    <button key={m} type="button" className="dash-btn dash-btn-sm"
-                      style={{ background: custMode === m ? 'linear-gradient(135deg,#402070,#c02040)' : '#f0f2f8', color: custMode === m ? '#fff' : '#666', border: 'none' }}
-                      onClick={() => { setCustMode(m); clearCustomer() }}>
-                      {m === 'search' ? '🔍 From Profile' : '✏️ Manual Entry'}
-                    </button>
-                  ))}
+                  <button type="button" className="dash-btn dash-btn-sm"
+                    style={{ background: custMode === 'search' ? 'linear-gradient(135deg,#402070,#c02040)' : '#f0f2f8', color: custMode === 'search' ? '#fff' : '#666', border: 'none' }}
+                    onClick={() => { setCustMode('search'); clearCustomer(); setForm(f => ({ ...f, service_type: '' })) }}>
+                    🔍 From Profile
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-sm"
+                    style={{ background: custMode === 'manual' ? 'linear-gradient(135deg,#402070,#c02040)' : '#f0f2f8', color: custMode === 'manual' ? '#fff' : '#666', border: 'none' }}
+                    onClick={() => { setCustMode('manual'); clearCustomer(); setForm(f => ({ ...f, service_type: 'Money Transfer (DMT)' })) }}>
+                    ✏️ Manual Entry
+                  </button>
                 </div>
               </div>
               <div className="dash-card-body" style={{ overflow: 'visible' }}>
@@ -483,20 +515,35 @@ export default function Services() {
             </div>
 
             {/* ── Service Type — show only after customer selected ── */}
-            {(form.customer_id || form.cust_name) && (
+            {(form.customer_id || form.cust_name || custMode === 'manual') && (
               <>
-                <div className="dash-card" style={{ marginBottom: 16 }}>
-                  <div className="dash-card-header"><h2>🔧 Service Type</h2></div>
-                  <div className="dash-card-body">
-                    <div className="dash-form-group">
-                      <label>Service Type *</label>
-                      <select required value={form.service_type} onChange={e => setForm({ ...emptyForm, service_type: e.target.value, charges_pct: '', cust_name: form.cust_name, cust_pan: form.cust_pan, cust_aadhar: form.cust_aadhar, cust_mobile: form.cust_mobile, customer_id: form.customer_id })}>
-                        <option value="">Select service</option>
-                        {master?.service_types?.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                      </select>
+                {custMode !== 'manual' && (
+                  <div className="dash-card" style={{ marginBottom: 16 }}>
+                    <div className="dash-card-header"><h2>🔧 Service Type</h2></div>
+                    <div className="dash-card-body">
+                      <div className="dash-form-group">
+                        <label>Service Type *</label>
+                        <select required value={form.service_type} onChange={e => setForm({ ...emptyForm, service_type: e.target.value, charges_pct: '', cust_name: form.cust_name, cust_pan: form.cust_pan, cust_aadhar: form.cust_aadhar, cust_mobile: form.cust_mobile, customer_id: form.customer_id })}>
+                          <option value="">Select service</option>
+                          {master?.service_types?.filter(s => {
+                            // Only superadmins see everything
+                            if (currentUser?.is_superadmin) return true
+                            // If permissions are defined, strictly enforce them
+                            if (currentUser?.permissions && Array.isArray(currentUser.permissions.services)) {
+                              const allowed = currentUser.permissions.services.map(p => p.toLowerCase().trim())
+                              const sName = s.name.toLowerCase().trim()
+                              // Handle the "Domestic Money Transfer" vs "Money Transfer (DMT)" naming mismatch
+                              if (sName.includes('dmt') && allowed.some(a => a.includes('domestic money transfer') || a.includes('dmt'))) return true
+                              // General case-insensitive check
+                              return allowed.includes(sName)
+                            }
+                            return true // No permissions set → show all
+                          }).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* ── Bill Pay + Withdrawal ── */}
                 {isBillWd && (
@@ -507,6 +554,7 @@ export default function Services() {
                       <div className="dash-form-grid">
                         {fg('Bill Payment Platform', sel('bill_platform', platforms))}
                         {fg('Bill Paid Amount (₹)', inp('bill_amount', '₹', 'number'))}
+                        {fg('Bill Due Date', <input type="date" value={form.bill_due_date} onChange={e => set('bill_due_date', e.target.value)} />)}
                         {fg('Withdrawal Platform', sel('platform', platforms))}
                         {fg('Card Type', sel('card', cards))}
                         {fg('Withdrawal Amount (₹)', <input required type="number" placeholder="₹" value={form.amount} onChange={e => set('amount', e.target.value)} />)}

@@ -1,0 +1,10 @@
+/* Additional public careers-specific tweaks (main styles in superadmin/Careers.css) */
+
+/* Entrance animation for job cards */
+.pub-careers-card {
+  animation: cardIn 0.45s ease both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

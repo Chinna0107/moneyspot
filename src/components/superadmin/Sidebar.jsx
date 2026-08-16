@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   MdDashboard, MdInsights, MdStorefront, MdEmojiEvents,
   MdAccountBalance, MdPeople, MdSettings, MdAssessment, MdSecurity, MdLogout, MdChevronRight,
-  MdLock, MdFactCheck, MdGppBad, MdNotificationsNone, MdRedeem, MdReceipt, MdPersonSearch
+  MdLock, MdFactCheck, MdGppBad, MdNotificationsNone, MdRedeem, MdReceipt, MdPersonSearch,
+  MdPhotoLibrary, MdWork, MdCalendarToday, MdMoneyOff
 } from 'react-icons/md'
 import { useRoleBasedAuth } from '../../hooks/useRoleBasedAuth'
 import { api } from '../../utils/api'
@@ -18,6 +19,7 @@ const NAV = [
     items: [
       { to: '/superadmin/dashboard',    icon: <MdDashboard />,    label: 'Dashboard' },
       { to: '/superadmin/insights',     icon: <MdInsights />,     label: 'Performance Insights' },
+      { to: '/superadmin/growth',       icon: <MdEmojiEvents />,  label: 'Growth & Degrowth' },
     ],
   },
   {
@@ -29,19 +31,31 @@ const NAV = [
       { to: '/superadmin/employees',    icon: <MdPeople />,       label: 'Employee Management' },
       { to: '/superadmin/attendance',   icon: <MdFactCheck />,    label: 'Attendance' },
       { to: '/superadmin/leads',        icon: <MdAssessment />,   label: 'Lead Management' },
+      { to: '/superadmin/pending-payments', icon: <MdMoneyOff />, label: 'Pending Payments' },
+    ],
+  },
+  {
+    group: 'Assessments',
+    items: [
+      { to: '/superadmin/create-assignment',  icon: <MdFactCheck />,    label: 'Create Assignment' },
+      { to: '/superadmin/assignment-results', icon: <MdAssessment />,   label: 'Results & Scores' },
     ],
   },
   {
     group: 'Configuration',
     items: [
-      { to: '/superadmin/config',         icon: <MdSettings />,      label: 'Configuration' },
+      { to: '/superadmin/config',         icon: <MdSettings />,         label: 'Configuration' },
       { to: '/superadmin/notifications',  icon: <MdNotificationsNone />, label: 'Notifications' },
+      { to: '/superadmin/gallery',        icon: <MdPhotoLibrary />,      label: 'Gallery' },
+      { to: '/superadmin/careers',        icon: <MdWork />,              label: 'Careers' },
     ],
   },
   {
     group: 'Reports',
     items: [
       { to: '/superadmin/customers',    icon: <MdPeople />,       label: 'Customers (All)' },
+      { to: '/superadmin/customer-reminders', icon: <MdPeople />,       label: 'Customer Reminders' },
+      { to: '/superadmin/due-dates',    icon: <MdCalendarToday />,label: 'Bill Due Dates' },
       { to: '/superadmin/fraud',         icon: <MdGppBad />,       label: 'Fraud List' },
       { to: '/superadmin/transactions',   icon: <MdReceipt />,      label: 'Transactions' },
       { to: '/superadmin/customer-info',   icon: <MdPersonSearch />, label: 'Customer Info' },

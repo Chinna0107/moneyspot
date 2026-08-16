@@ -10,7 +10,7 @@ import '../../pages/dashboard.css'
 const empty = {
   name: '', email: '', phone: '', pan: '', aadhar: '', acc_number: '',
   branch: '', aadhar_img_url: '', pan_img_url: '', card_front_img_url: '',
-  referral_name: '', referral_phone: ''
+  referral_name: '', referral_phone: '', source: ''
 }
 
 const ImgField = ({ label, icon, field, value, onChange }) => {
@@ -190,6 +190,20 @@ export default function AddCustomer() {
                     <label>Branch</label>
                     <input readOnly value={form.branch} style={{ background: '#f8fafc', color: '#402070', fontWeight: 700, cursor: 'not-allowed' }} />
                   </div>
+                  <div className="dash-form-group">
+                    <label>Source *</label>
+                    <select required value={form.source} onChange={e => set('source', e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <option value="" disabled>Select Source</option>
+                      <option value="Insta Ad">Insta Ad</option>
+                      <option value="Google search">Google search</option>
+                      <option value="Referal">Referal</option>
+                      <option value="Facebook">Facebook</option>
+                      <option value="Website">Website</option>
+                      <option value="Walk-in">Walk-in</option>
+                      <option value="Local advertisement">Local advertisement</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* ── Referral Details ── */}
@@ -244,7 +258,7 @@ export default function AddCustomer() {
             ) : (
               <table className="dash-table">
                 <thead>
-                  <tr><th>Name</th><th>Email</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Status</th><th>Submitted</th></tr>
+                  <tr><th>Name</th><th>Email</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Status</th><th>Submitted</th></tr>
                 </thead>
                 <tbody>
                   {customers.map(c => (
@@ -254,6 +268,7 @@ export default function AddCustomer() {
                       <td>{c.phone}</td>
                       <td>{c.pan}</td>
                       <td>{c.branch || '—'}</td>
+                      <td>{c.source || '—'}</td>
                       <td><span style={statusStyle(c.status)}>{c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span></td>
                       <td>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
                     </tr>

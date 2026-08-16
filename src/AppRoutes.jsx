@@ -20,6 +20,8 @@ import Notifications from './pages/superadmin/Notifications';
 import RedemptionList from './pages/superadmin/RedemptionList';
 import SuperAdminTransactions from './pages/superadmin/Transactions';
 
+import SuperadminDueDates from './pages/superadmin/BillDueDates';
+
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminInsights from './pages/admin/Insights';
@@ -43,6 +45,8 @@ import Settlements from './pages/admin/Settlements';
 import DailyClosing from './pages/admin/DailyClosing';
 import Profit from './pages/admin/Profit';
 
+import AdminDueDates from './pages/admin/BillDueDates';
+
 // Employee Pages
 import EmployeeDashboard from './pages/employee/Dashboard';
 import CustomerInfo from './pages/employee/CustomerInfo';
@@ -54,6 +58,8 @@ import EmployeeNotifications from './pages/employee/Notifications';
 import AdminNotifications from './pages/admin/Notifications';
 import EmployeeNavbar from './components/employee/EmployeeNavbar';
 import AdminSidebar from './components/admin/AdminSidebar';
+
+import EmployeeDueDates from './pages/employee/BillDueDates';
 
 export default function AppRoutes() {
   return (
@@ -75,11 +81,13 @@ export default function AppRoutes() {
       <Route path="/superadmin/fraud"      element={<SuperAdminRoute><FraudList /></SuperAdminRoute>} />
       <Route path="/superadmin/redemptions" element={<SuperAdminRoute><RedemptionList /></SuperAdminRoute>} />
       <Route path="/superadmin/transactions" element={<SuperAdminRoute><SuperAdminTransactions /></SuperAdminRoute>} />
+      <Route path="/superadmin/due-dates"   element={<SuperAdminRoute><SuperadminDueDates /></SuperAdminRoute>} />
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard"       element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/insights"        element={<AdminRoute><AdminInsights /></AdminRoute>} />
-      <Route path="/admin/transactions"    element={<AdminRoute><AdminTransactions /></AdminRoute>} />
+      <Route path="/admin/transactions"   element={<AdminRoute><AdminTransactions /></AdminRoute>} />
+      <Route path="/admin/due-dates"      element={<AdminRoute><AdminDueDates /></AdminRoute>} />
       <Route path="/admin/finance"         element={<AdminRoute><FinanceDashboard /></AdminRoute>} />
       <Route path="/admin/finance/wallets"     element={<AdminRoute><Wallets /></AdminRoute>} />
       <Route path="/admin/finance/ledger"      element={<AdminRoute><Ledger /></AdminRoute>} />
@@ -104,6 +112,7 @@ export default function AppRoutes() {
       <Route path="/employee/customer-info" element={<EmployeeRoute><CustomerInfo /></EmployeeRoute>} />
       <Route path="/employee/add-customer" element={<EmployeeRoute><AddCustomer /></EmployeeRoute>} />
       <Route path="/employee/services"     element={<EmployeeRoute><Services /></EmployeeRoute>} />
+      <Route path="/employee/due-dates"    element={<EmployeeRoute><EmployeeDueDates /></EmployeeRoute>} />
       <Route path="/employee/reports"      element={<EmployeeRoute><EmployeeReports /></EmployeeRoute>} />
       <Route path="/employee/notifications" element={<EmployeeRoute><EmployeeNotifications /></EmployeeRoute>} />
       <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeNavbar} /></EmployeeRoute>} />

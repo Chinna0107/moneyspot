@@ -28,6 +28,7 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
     pan: c.pan || '',
     aadhar: c.aadhar || '',
     acc_number: c.acc_number || '',
+    source: c.source || '',
     referral_name: c.referral_name || '',
     referral_phone: c.referral_phone || '',
   })
@@ -80,6 +81,7 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
         pan: editForm.pan.trim().toUpperCase(),
         phone: editForm.phone.trim(),
         aadhar: editForm.aadhar?.trim() || null,
+        source: editForm.source?.trim() || null,
         referral_phone: editForm.referral_phone?.trim() || null,
       })
       setCustomer(prev => ({ ...prev, ...editForm }))
@@ -137,6 +139,7 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
     { label: 'Aadhar Number', value: customer.aadhar ? customer.aadhar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—', mono: true },
     { label: 'Account No.',   value: customer.acc_number || '—', mono: true },
     { label: 'Branch',        value: customer.branch || '—' },
+    { label: 'Source',        value: customer.source || '—' },
     { label: 'Added By',      value: customer.added_by_name || '—' },
     { label: 'Reviewed By',   value: customer.reviewed_by_name || '—' },
     { label: 'Reviewed At',   value: customer.reviewed_at ? new Date(customer.reviewed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—' },
@@ -214,6 +217,7 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
                             pan: customer.pan || '',
                             aadhar: customer.aadhar || '',
                             acc_number: customer.acc_number || '',
+                            source: customer.source || '',
                             referral_name: customer.referral_name || '',
                             referral_phone: customer.referral_phone || '',
                           })
@@ -321,6 +325,24 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
                         onChange={e => handleEditChange('acc_number', e.target.value)}
                         style={{ width: '100%', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, color: '#1a0a2e', outline: 'none', fontFamily: 'monospace' }}
                       />
+                    </div>
+                    <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 14px', border: '2px solid rgba(64,32,112,0.1)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Source</div>
+                      <select
+                        value={editForm.source}
+                        onChange={e => handleEditChange('source', e.target.value)}
+                        style={{ width: '100%', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, color: '#1a0a2e', outline: 'none' }}
+                      >
+                        <option value="">Select Source</option>
+                        <option value="Insta Ad">Insta Ad</option>
+                        <option value="Google search">Google search</option>
+                        <option value="Referal">Referal</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Website">Website</option>
+                        <option value="Walk-in">Walk-in</option>
+                        <option value="Local advertisement">Local advertisement</option>
+                        <option value="Others">Others</option>
+                      </select>
                     </div>
                     <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 14px', border: '2px solid rgba(64,32,112,0.1)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Referral Name</div>
@@ -598,7 +620,7 @@ export default function AdminCustomers() {
               {loading ? <div className="dash-loading">Loading...</div> : (
                 <table className="dash-table">
                   <thead>
-                    <tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Branch</th><th>Coins</th><th>Documents</th><th>Status</th><th>Added By</th><th>Actions</th></tr>
+                    <tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Branch</th><th>Source</th><th>Coins</th><th>Documents</th><th>Status</th><th>Added By</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
                     {filtered.map(c => (
@@ -614,6 +636,7 @@ export default function AdminCustomers() {
                         <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.pan}</td>
                         <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.aadhar ? c.aadhar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—'}</td>
                         <td style={{ fontSize: 12 }}>{c.branch || '—'}</td>
+                        <td style={{ fontSize: 12 }}>{c.source || '—'}</td>
                         <td style={{ fontWeight: 700, color: '#d4af37', fontSize: 13 }}>🪙 {c.coins ?? 0}</td>
                         <td onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 4 }}>

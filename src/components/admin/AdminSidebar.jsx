@@ -31,11 +31,14 @@ const NAV = [
     items: [
       { to: '/admin/dashboard',    icon: <MdDashboard />,    label: 'Dashboard' },
       { to: '/admin/insights',     icon: <MdInsights />,     label: 'Performance Insights' },
+      { to: '/admin/growth',       icon: <MdTrendingUp />,   label: 'Growth & Targets' },
     ]},
   { group: 'Operations',
     items: [
       { to: '/admin/transactions', icon: <MdReceipt />,      label: 'Transactions' },
+      { to: '/admin/due-dates',    icon: <MdCalendarToday />,label: 'Bill Due Dates' },
       { to: '/admin/leads',        icon: <MdAssessment />,   label: 'Lead Management' },
+      { to: '/admin/pending-payments', icon: <MdMoneyOff />, label: 'Pending Payments' },
     ]},
   { group: 'Employees',
     items: [
@@ -48,6 +51,7 @@ const NAV = [
     items: [
       { to: '/admin/requests',     icon: <MdInbox />,        label: 'Customer Requests' },
       { to: '/admin/customers',    icon: <MdPeople />,       label: 'Customer Details' },
+      { to: '/admin/customer-reminders', icon: <MdPeople />,       label: 'Customer Reminders' },
     ]},
   { group: 'Reports',
     items: [

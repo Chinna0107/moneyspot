@@ -170,7 +170,7 @@ export default function Careers() {
           <div className="pub-careers-cta">
             <h2>Don't see the right fit?</h2>
             <p>Send us your resume and we'll reach out when the perfect opportunity opens up.</p>
-            <a href="mailto:careers@moneyspotfintech.com">📧 careers@moneyspotfintech.com</a>
+            <a href="mailto:info@moneyspotfintech.com">📧 info@moneyspotfintech.com</a>
           </div>
         )}
       </div>

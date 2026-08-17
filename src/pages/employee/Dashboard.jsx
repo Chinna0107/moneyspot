@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
 import { MdLogin, MdLogout, MdRefresh, MdTrendingUp, MdTrendingDown, MdAccountBalanceWallet, MdMonetizationOn, MdStar, MdPeople, MdPersonAdd, MdPerson } from 'react-icons/md'
@@ -112,7 +112,7 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="ed-page">
-      <EmployeeNavbar />
+      <EmployeeSidebar />
       <div className="ed-content">
 
         {/* ── Hero Header ── */}

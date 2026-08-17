@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { getTokenByRole } from '../../utils/tokenUtils';
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar';
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar';
 import './EmployeeDashboard.css';
 
 export default function EmployeeDueDates() {
@@ -75,9 +75,9 @@ Warm Regards,
   const filtered = getFilteredData();
 
   return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content" style={{ padding: '24px' }}>
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main" style={{ padding: '24px' }}>
         <h1 style={{ marginBottom: 20 }}>Bill Due Dates</h1>
         
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
@@ -126,7 +126,7 @@ Warm Regards,
             </tbody>
           </table>
         )}
-      </div>
+      </main>
     </div>
   );
 }

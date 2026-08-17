@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { api } from '../../utils/api'
 import { getTokenByRole, getUserByRole } from '../../utils/tokenUtils'
 import { useCharges } from '../../hooks/useCharges'
@@ -245,16 +245,16 @@ export default function Services() {
   }
 
   if (!master || attLoading) return (
-    <div className="emp-page"><EmployeeNavbar />
-      <div className="emp-page-content"><div className="dash-loading">Loading services...</div></div>
+    <div className="dashboard"><EmployeeSidebar />
+      <main className="dash-main"><div className="dash-loading">Loading services...</div></main>
     </div>
   )
 
   // ── Check-in gate ──
   if (attFetched && !attendance?.check_in) return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
         <div style={{ background: '#fff', borderRadius: 20, padding: '48px 40px', textAlign: 'center', maxWidth: 420, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.1)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
           <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1a0a2e', marginBottom: 8 }}>Check-In Required</h2>
@@ -274,7 +274,7 @@ export default function Services() {
             ← Go to Dashboard
           </button>
         </div>
-      </div>
+      </main>
     </div>
   )
 
@@ -314,9 +314,9 @@ export default function Services() {
   )
 
   return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content">
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main">
         <div className="emp-page-header"><h1>New Transaction</h1></div>
 
         {msg   && <div className="dash-alert dash-alert-success" style={{ marginBottom: 16 }}>{msg}</div>}
@@ -963,7 +963,7 @@ export default function Services() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

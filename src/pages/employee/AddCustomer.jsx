@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { useAddCustomer, useMyCustomers } from '../../hooks/useCustomers'
 import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
@@ -110,9 +110,9 @@ export default function AddCustomer() {
   })
 
   return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content">
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main">
         <div className="emp-page-header">
           <h1>Add New Customer</h1>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -278,7 +278,7 @@ export default function AddCustomer() {
             )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

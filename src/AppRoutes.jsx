@@ -56,7 +56,7 @@ import EmployeeReports from './pages/employee/EmployeeReports';
 import Profile from './pages/employee/Profile';
 import EmployeeNotifications from './pages/employee/Notifications';
 import AdminNotifications from './pages/admin/Notifications';
-import EmployeeNavbar from './components/employee/EmployeeNavbar';
+import EmployeeSidebar from './components/employee/EmployeeSidebar';
 import AdminSidebar from './components/admin/AdminSidebar';
 
 import EmployeeDueDates from './pages/employee/BillDueDates';
@@ -115,7 +115,7 @@ export default function AppRoutes() {
       <Route path="/employee/due-dates"    element={<EmployeeRoute><EmployeeDueDates /></EmployeeRoute>} />
       <Route path="/employee/reports"      element={<EmployeeRoute><EmployeeReports /></EmployeeRoute>} />
       <Route path="/employee/notifications" element={<EmployeeRoute><EmployeeNotifications /></EmployeeRoute>} />
-      <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeNavbar} /></EmployeeRoute>} />
+      <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeSidebar} /></EmployeeRoute>} />
       <Route path="/admin/profile"          element={<AdminRoute><Profile Sidebar={AdminSidebar} isAdmin={true} /></AdminRoute>} />
 
       <Route path="*" element={<Navigate to="/login/superadmin" replace />} />

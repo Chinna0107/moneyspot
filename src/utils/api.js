@@ -20,14 +20,15 @@ export const api = async (endpoint, options = {}) => {
 
   // Auto-redirect on 401 — token expired or missing
   if (res.status === 401) {
-    const isCustomer  = endpoint.startsWith('/customer')
+    console.error('API 401 Error on endpoint:', endpoint, 'Headers sent:', options.headers)
+    const isCustomer  = endpoint.startsWith('/customer') && !endpoint.startsWith('/customers')
     const isSuperAdmin = endpoint.startsWith('/auth/superadmin') || localStorage.getItem('current_role') === 'superadmin'
     if (isCustomer) {
       localStorage.removeItem('customer_auth')
-      window.location.href = '/login/customer'
+      // window.location.href = '/login/customer'
     } else if (!isSuperAdmin) {
-      localStorage.removeItem('employee_auth')
-      window.location.href = '/login/employee'
+      // localStorage.removeItem('employee_auth')
+      // window.location.href = '/login/employee'
     }
     throw new Error(data.error || 'Session expired. Please log in again.')
   }

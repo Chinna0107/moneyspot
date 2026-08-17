@@ -12,7 +12,7 @@ export const unlockAudio = () => {
       sharedCtx = new (window.AudioContext || window.webkitAudioContext)()
     }
     if (sharedCtx.state === 'suspended') {
-      sharedCtx.resume()
+      sharedCtx.resume().catch(() => {})
     }
     audioUnlocked = true
   } catch (_) {}
@@ -25,7 +25,7 @@ const playSOSSound = async () => {
       sharedCtx = new (window.AudioContext || window.webkitAudioContext)()
     }
     if (sharedCtx.state === 'suspended') {
-      await sharedCtx.resume()
+      await sharedCtx.resume().catch(() => {})
     }
     if (sharedCtx.state !== 'running') return
 

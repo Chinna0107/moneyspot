@@ -89,7 +89,7 @@ import Profile from './pages/employee/Profile'
 import Leads from './pages/employee/Leads'
 import AdminLeads from './pages/admin/Leads'
 import SuperAdminLeads from './pages/superadmin/Leads'
-import EmployeeNavbar from './components/employee/EmployeeNavbar'
+import EmployeeSidebar from './components/employee/EmployeeSidebar'
 import AdminSidebar from './components/admin/AdminSidebar'
 import EmployeeNotifications from './pages/employee/Notifications'
 import AdminNotifications from './pages/admin/Notifications'
@@ -226,7 +226,7 @@ export default function App() {
         <Route path="/employee/reports"       element={<EmployeeRoute><EmployeeReports /></EmployeeRoute>} />
         <Route path="/employee/notifications"  element={<EmployeeRoute><EmployeeNotifications /></EmployeeRoute>} />
         <Route path="/employee/pending-payments" element={<EmployeeRoute><PendingPayments role="employee" /></EmployeeRoute>} />
-        <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeNavbar} /></EmployeeRoute>} />
+        <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeSidebar} /></EmployeeRoute>} />
         <Route path="/employee/branch-transactions" element={<EmployeeRoute><EmployeeTransactions /></EmployeeRoute>} />
         <Route path="/employee/branch-expenses" element={<EmployeeRoute><EmployeeExpenses /></EmployeeRoute>} />
         <Route path="/employee/branch-requests" element={<EmployeeRoute><EmployeeRequests /></EmployeeRoute>} />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { getTokenByRole } from '../../utils/tokenUtils';
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar';
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar';
 import '../../pages/dashboard.css';
 
 export default function EmployeeExpenses() {
@@ -18,8 +18,8 @@ export default function EmployeeExpenses() {
 
   return (
     <div className="dash-page">
-      <EmployeeNavbar />
-      <div className="dash-content">
+      <EmployeeSidebar />
+      <main className="dash-main">
         <div className="dash-topbar">
           <h1>Branch Expenses</h1>
         </div>
@@ -58,7 +58,7 @@ export default function EmployeeExpenses() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

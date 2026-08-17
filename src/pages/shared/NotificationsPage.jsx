@@ -129,17 +129,7 @@ export default function NotificationsPage({ role, Sidebar, layout = 'sidebar' })
     </div>
   )
 
-  // Employee uses top navbar — wrap in emp-page structure
-  if (layout === 'top') {
-    return (
-      <div className="emp-page">
-        <Sidebar />
-        <div className="emp-page-content" style={{ padding: 0, maxWidth: '100%' }}>
-          {inner}
-        </div>
-      </div>
-    )
-  }
+
 
   // Admin uses sidebar — wrap in dash-page structure
   return (

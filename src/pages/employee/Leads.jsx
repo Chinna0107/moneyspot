@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import CloudinaryUpload from '../../components/shared/CloudinaryUpload'
 import { useLeads } from '../../hooks/useLeads'
 import '../../pages/dashboard.css'
@@ -82,9 +82,9 @@ export default function Leads() {
   )
 
   return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content">
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main">
 
         {/* ── Header ── */}
         <div className="emp-page-header">
@@ -362,7 +362,7 @@ export default function Leads() {
           </div>
         )}
 
-      </div>
+      </main>
     </div>
   )
 }

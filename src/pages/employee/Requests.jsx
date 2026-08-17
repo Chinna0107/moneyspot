@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import AdminSidebar from '../../components/admin/AdminSidebar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { useCustomerRequests } from '../../hooks/useCustomers'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
@@ -52,8 +52,8 @@ export default function Requests() {
 
   return (
     <div className="dash-page">
-      <EmployeeNavbar />
-      <div className="dash-content">
+      <EmployeeSidebar />
+      <main className="dash-main">
         <div className="dash-topbar">
           <h1>{section === 'leads' ? '🎯 Lead Requests' : 'Customer Requests'}</h1>
           <div className="dash-topbar-right">
@@ -214,7 +214,7 @@ export default function Requests() {
             </>
           )}
         </div>
-      </div>
+      </main>
 
       {lightbox && (
         <div className="req-lightbox" onClick={() => setLightbox(null)}>

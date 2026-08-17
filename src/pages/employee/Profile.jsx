@@ -5,15 +5,15 @@ import { getTokenByRole } from '../../utils/tokenUtils'
 import '../dashboard.css'
 import './Profile.css'
 
-const authHeader = () => {
-  const token = getTokenByRole('employee') || getTokenByRole('admin')
+const authHeader = (role = 'employee') => {
+  const token = getTokenByRole(role) || getTokenByRole('admin') || getTokenByRole('superadmin') || getTokenByRole('employee')
   return { Authorization: `Bearer ${token}` }
 }
 
 const fmt = n => Number(parseInt(n) || 0).toLocaleString('en-IN')
-const COINS_PER_RUPEE = 10// 10 coins = ₹1
+const COINS_PER_RUPEE = 10 // 10 coins = ₹1
 
-function ChangePasswordModal({ onClose }) {
+function ChangePasswordModal({ onClose, role = 'employee' }) {
   const [form, setForm]     = useState({ current_password: '', new_password: '', confirm_password: '' })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg]       = useState('')
@@ -25,7 +25,7 @@ function ChangePasswordModal({ onClose }) {
     setSaving(true); setMsg(''); setError('')
     try {
       const r = await api('/auth/change-password', {
-        method: 'PATCH', headers: authHeader(),
+        method: 'PATCH', headers: authHeader(role),
         body: JSON.stringify({ current_password: form.current_password, new_password: form.new_password }),
       })
       setMsg(r.message)
@@ -35,51 +35,43 @@ function ChangePasswordModal({ onClose }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #402070, #c02040)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="profile-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="profile-modal-content">
+        <div className="profile-modal-header">
           <div>
-            <div style={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>🔒 Change Password</div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>Keep your account secure</div>
+            <div style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>🔒 Change Password</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>Keep your account secure</div>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <button className="profile-modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div style={{ padding: 24 }}>
-          {msg   && <div style={{ background: '#d1fae5', color: '#059669', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 600 }}>✅ {msg}</div>}
-          {error && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 600 }}>❌ {error}</div>}
+        <div className="profile-modal-body">
+          {msg && <div className="profile-alert success">✅ {msg}</div>}
+          {error && <div className="profile-alert error">❌ {error}</div>}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
               { key: 'current_password', label: 'Current Password',     icon: '🔑' },
               { key: 'new_password',      label: 'New Password',         icon: '🔒' },
               { key: 'confirm_password',  label: 'Confirm New Password', icon: '✅' },
             ].map(({ key, label, icon }) => (
-              <div key={key}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
-                  {icon} {label}
-                </label>
+              <div className="profile-input-group" key={key} style={{ marginBottom: 0 }}>
+                <label className="profile-input-label">{icon} {label}</label>
                 <input required type="password" placeholder="••••••••"
+                  className="profile-input"
                   value={form[key]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: 14, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }} />
+                />
               </div>
             ))}
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
               <button type="button" onClick={onClose}
-                style={{ flex: 1, padding: '11px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+                className="profile-quick-btn" style={{ flex: 1, padding: '12px', fontSize: 14 }}>
                 Cancel
               </button>
               <button type="submit" disabled={saving}
-                style={{ flex: 2, padding: '11px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #402070, #c02040)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                className="profile-redeem-btn" style={{ flex: 2, padding: '12px' }}>
                 {saving ? 'Saving...' : '🔒 Update Password'}
               </button>
             </div>
@@ -105,20 +97,22 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const [pendingAssignments, setPendingAssignments] = useState([])
   const navigate = useNavigate()
 
+  const role = isAdmin ? 'admin' : 'employee'
+
   const fetchProfile = () => {
-    api('/auth/me', { headers: authHeader() })
+    api('/auth/me', { headers: authHeader(role) })
       .then(d => { setUser(d); setCoins(d.coins ?? 0); setLoading(false) })
       .catch(() => setLoading(false))
   }
 
   const fetchCoins = () => {
-    api('/master/coins/history', { headers: authHeader() })
+    api('/master/coins/history', { headers: authHeader(role) })
       .then(d => { setCoins(d.balance); setCoinHistory(d.history) })
       .catch(() => {})
   }
 
   const fetchAssignments = () => {
-    api('/assignments/pending', { headers: authHeader() })
+    api('/assignments/pending', { headers: authHeader(role) })
       .then(d => setPendingAssignments(Array.isArray(d) ? d : []))
       .catch(() => {})
   }
@@ -131,7 +125,7 @@ export default function Profile({ Sidebar, isAdmin = false }) {
     setRedeeming(true); setRedeemMsg(''); setRedeemErr('')
     try {
       const r = await api('/master/coins/redeem', {
-        method: 'POST', headers: authHeader(),
+        method: 'POST', headers: authHeader(role),
         body: JSON.stringify({ coins: parseInt(redeemAmt) }),
       })
       setRedeemMsg(r.message)
@@ -157,16 +151,16 @@ export default function Profile({ Sidebar, isAdmin = false }) {
       <div className="profile-content">
         {loading ? (
           <div className="profile-loading">
-            <div className="profile-loading-spinner" />
-            <div>Loading your profile...</div>
+            <div className="profile-spinner" />
+            <div>Loading Profile Identity...</div>
           </div>
         ) : (
           <>
             {/* Page title */}
-            <div style={{ padding: '32px 40px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="profile-header-wrap">
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>My Profile</div>
-                <h1 style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 900, color: '#1a0a2e' }}>Employee ID Card</h1>
+                <div className="profile-title-sub">Employee Identity</div>
+                <h1 className="profile-title-main">My Profile</h1>
               </div>
               <button className="profile-change-pw-btn" onClick={() => setShowPwModal(true)}>🔒 Change Password</button>
             </div>
@@ -176,10 +170,8 @@ export default function Profile({ Sidebar, isAdmin = false }) {
               <div className="id-card">
                 {/* Card Header */}
                 <div className="id-card-header">
-                  <div className="id-card-header-orb" />
-                  <div className="id-card-header-orb2" />
                   <div className="id-card-logo">💰 MoneySpot</div>
-                  <div className="id-card-type">Employee Identity Card</div>
+                  <div className="id-card-type">Identity Card</div>
                 </div>
 
                 {/* Card Body */}
@@ -206,20 +198,12 @@ export default function Profile({ Sidebar, isAdmin = false }) {
                         <span className="id-card-field-val id-card-empid">{empId}</span>
                       </div>
                       <div className="id-card-field">
-                        <span className="id-card-field-label">Email</span>
-                        <span className="id-card-field-val">{user?.email || '—'}</span>
-                      </div>
-                      <div className="id-card-field">
                         <span className="id-card-field-label">Mobile</span>
                         <span className="id-card-field-val">{user?.mobile || '—'}</span>
                       </div>
                       <div className="id-card-field">
                         <span className="id-card-field-label">PAN</span>
                         <span className="id-card-field-val">{user?.pan || '—'}</span>
-                      </div>
-                      <div className="id-card-field">
-                        <span className="id-card-field-label">Aadhar</span>
-                        <span className="id-card-field-val">{user?.aadhar ? `XXXX XXXX ${user.aadhar.slice(-4)}` : '—'}</span>
                       </div>
                       <div className="id-card-field">
                         <span className="id-card-field-label">Joined</span>
@@ -237,29 +221,26 @@ export default function Profile({ Sidebar, isAdmin = false }) {
                     {user?.is_active !== false ? '● Active' : '● Inactive'}
                   </div>
                 </div>
-
-                {/* Decorative strip */}
-                <div className="id-card-strip" />
               </div>
             </div>
 
             {/* ── ASSIGNMENTS SECTION ── */}
             {pendingAssignments.length > 0 && (
-              <div style={{ padding: '0 40px 40px' }}>
-                <h3 style={{ fontSize: 18, color: '#1e293b', marginBottom: 15 }}>📋 Pending Assignments</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 15 }}>
+              <div className="profile-assignments-wrap">
+                <div className="profile-section-title">📋 Pending Assignments</div>
+                <div className="profile-assignments-grid">
                   {pendingAssignments.map(a => (
-                    <div key={a.id} style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div key={a.id} className="profile-assignment-card">
                       <div>
-                        <h4 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: 16 }}>{a.title}</h4>
-                        {a.description && <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 12px 0' }}>{a.description}</p>}
-                        <div style={{ display: 'flex', gap: 15, fontSize: 12, color: '#475569', marginBottom: 15, fontWeight: 600 }}>
+                        <h4 className="profile-assignment-title">{a.title}</h4>
+                        {a.description && <p className="profile-assignment-desc">{a.description}</p>}
+                        <div className="profile-assignment-meta">
                           <span>⏱️ {a.time_limit_minutes} Mins</span>
                           <span>📝 {a.total_questions} Questions</span>
                         </div>
                       </div>
-                      <button onClick={() => navigate(`/employee/take-assignment/${a.id}`)} style={{ background: '#402070', color: '#fff', border: 'none', padding: '10px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
-                        Start Assignment
+                      <button onClick={() => navigate(`/employee/take-assignment/${a.id}`)} className="profile-assignment-btn">
+                        🚀 Start Assignment
                       </button>
                     </div>
                   ))}
@@ -268,85 +249,82 @@ export default function Profile({ Sidebar, isAdmin = false }) {
             )}
 
             {/* ── COINS SECTION ── */}
-            <div style={{ padding: '0 40px 40px' }}>
-              <button
-                onClick={() => setShowCoins(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg,#402070,#c02040)', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 800, fontSize: 15, cursor: 'pointer', marginBottom: showCoins ? 16 : 0, width: '100%', justifyContent: 'space-between' }}>
-                <span>🪙 Coins — {fmt(coins)} balance</span>
-                <span style={{ fontSize: 12, opacity: 0.8 }}>{showCoins ? '▲ Hide' : '▼ Show & Redeem'}</span>
+            <div className="profile-coins-wrap">
+              <button className="profile-coins-toggle-btn" onClick={() => setShowCoins(v => !v)}>
+                <span>🪙 MoneySpot Coins Balance — {fmt(coins)}</span>
+                <span style={{ fontSize: 13, opacity: 0.8 }}>{showCoins ? '▲ Collapse' : '▼ Show & Redeem'}</span>
               </button>
 
               {showCoins && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="profile-coins-grid">
 
                   {/* Redeem Panel */}
-                  <div style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 2px 16px rgba(64,32,112,0.08)', border: '1px solid #f0f2f8' }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#402070', marginBottom: 4 }}>🎁 Redeem Coins</div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>{COINS_PER_RUPEE} coins = ₹1 &nbsp;·&nbsp; Min: {COINS_PER_RUPEE} coins</div>
+                  <div className="profile-coins-card">
+                    <div className="profile-coins-card-title">🎁 Redeem Coins</div>
+                    <div className="profile-coins-card-sub">{COINS_PER_RUPEE} coins = ₹1 &nbsp;·&nbsp; Min: {COINS_PER_RUPEE} coins</div>
 
                     {/* Balance display */}
-                    <div style={{ background: 'linear-gradient(135deg,#fef9e7,#fef3c7)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: '#d97706', fontWeight: 700 }}>Available Balance</span>
-                      <span style={{ fontSize: 22, fontWeight: 900, color: '#d97706' }}>🪙 {fmt(coins)}</span>
+                    <div className="profile-balance-box">
+                      <span className="profile-balance-label">Available Balance</span>
+                      <span className="profile-balance-val">🪙 {fmt(coins)}</span>
                     </div>
 
-                    {redeemMsg && <div style={{ background: '#d1fae5', color: '#059669', padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 13, fontWeight: 600 }}>✅ {redeemMsg}</div>}
-                    {redeemErr && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 13, fontWeight: 600 }}>❌ {redeemErr}</div>}
+                    {redeemMsg && <div className="profile-alert success">✅ {redeemMsg}</div>}
+                    {redeemErr && <div className="profile-alert error">❌ {redeemErr}</div>}
 
                     <form onSubmit={handleRedeem}>
-                      <div style={{ marginBottom: 12 }}>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Coins to Redeem</label>
+                      <div className="profile-input-group">
+                        <label className="profile-input-label">Coins to Redeem</label>
                         <input
                           type="number" required min={COINS_PER_RUPEE} step={COINS_PER_RUPEE}
                           placeholder={`Min ${COINS_PER_RUPEE} coins`}
                           value={redeemAmt} onChange={e => setRedeemAmt(e.target.value)}
-                          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                          className="profile-input"
                         />
                         {redeemAmt && parseInt(redeemAmt) >= COINS_PER_RUPEE && (
-                          <div style={{ fontSize: 12, color: '#059669', fontWeight: 700, marginTop: 6 }}>
-                            = ₹{parseInt(redeemAmt) / COINS_PER_RUPEE} cash value
+                          <div style={{ fontSize: 12, color: '#10b981', fontWeight: 800, marginTop: 8 }}>
+                            ✨ Equals ₹{parseInt(redeemAmt) / COINS_PER_RUPEE} cash value!
                           </div>
                         )}
                       </div>
 
                       {/* Quick select buttons */}
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <div className="profile-quick-btns">
                         {[100, 500, 1000, 2000].filter(v => v <= coins).map(v => (
                           <button key={v} type="button"
                             onClick={() => setRedeemAmt(String(v))}
-                            style={{ padding: '4px 10px', borderRadius: 20, border: '1.5px solid #e5e7eb', background: redeemAmt === String(v) ? '#402070' : '#f8fafc', color: redeemAmt === String(v) ? '#fff' : '#374151', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                            className={`profile-quick-btn ${redeemAmt === String(v) ? 'active' : ''}`}>
                             {fmt(v)}
                           </button>
                         ))}
                       </div>
 
                       <button type="submit" disabled={redeeming || !redeemAmt || parseInt(redeemAmt) < COINS_PER_RUPEE || parseInt(redeemAmt) > coins}
-                        style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#402070,#c02040)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: (redeeming || !redeemAmt || parseInt(redeemAmt) < COINS_PER_RUPEE || parseInt(redeemAmt) > coins) ? 0.5 : 1 }}>
+                        className="profile-redeem-btn">
                         {redeeming ? 'Processing...' : `🎁 Redeem ${redeemAmt ? fmt(redeemAmt) : ''} Coins`}
                       </button>
                     </form>
                   </div>
 
                   {/* History Panel */}
-                  <div style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 2px 16px rgba(64,32,112,0.08)', border: '1px solid #f0f2f8', maxHeight: 380, overflowY: 'auto' }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#402070', marginBottom: 16 }}>📜 Coins History</div>
-                    {coinHistory.length === 0
-                      ? <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: 20 }}>No coin activity yet</div>
-                      : coinHistory.map(h => (
-                        <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{h.remarks || (h.type === 'earn' ? 'Earned' : 'Redeemed')}</div>
-                            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{new Date(h.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div className="profile-coins-card">
+                    <div className="profile-coins-card-title">📜 Coins History</div>
+                    <div className="profile-coins-history">
+                      {coinHistory.length === 0
+                        ? <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', padding: '40px 20px' }}>No coin activity yet</div>
+                        : coinHistory.map(h => (
+                          <div key={h.id} className="profile-history-item">
+                            <div>
+                              <div className="profile-history-info-title">{h.remarks || (h.type === 'earn' ? 'Earned' : 'Redeemed')}</div>
+                              <div className="profile-history-info-date">{new Date(h.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                            </div>
+                            <span className={`profile-history-amt ${h.type}`}>
+                              {h.type === 'earn' ? '+' : '−'}{fmt(h.coins)} 🪙
+                            </span>
                           </div>
-                          <span style={{
-                            fontWeight: 800, fontSize: 14, whiteSpace: 'nowrap',
-                            color: h.type === 'earn' ? '#059669' : '#dc2626'
-                          }}>
-                            {h.type === 'earn' ? '+' : '−'}{fmt(h.coins)} 🪙
-                          </span>
-                        </div>
-                      ))
-                    }
+                        ))
+                      }
+                    </div>
                   </div>
 
                 </div>
@@ -362,21 +340,21 @@ export default function Profile({ Sidebar, isAdmin = false }) {
     return (
       <div className="dash-page">
         <Sidebar />
-        <div className="dash-content" style={{ padding: 0 }}>
+        <div className="dash-content" style={{ padding: 0, overflowX: 'hidden' }}>
           {content}
         </div>
-        {showPwModal && <ChangePasswordModal onClose={() => setShowPwModal(false)} />}
+        {showPwModal && <ChangePasswordModal role={role} onClose={() => setShowPwModal(false)} />}
       </div>
     )
   }
 
   return (
-    <div className="emp-page">
+    <div className="dash-page">
       <Sidebar />
-      <div style={{ flex: 1, padding: 0 }}>
+      <main className="dash-main" style={{ padding: 0 }}>
         {content}
-      </div>
-      {showPwModal && <ChangePasswordModal onClose={() => setShowPwModal(false)} />}
+      </main>
+      {showPwModal && <ChangePasswordModal role={role} onClose={() => setShowPwModal(false)} />}
     </div>
   )
 }

@@ -71,16 +71,13 @@ export default function EmployeePerformance() {
   const attendance = data?.attendance ?? []
   const stats      = data?.stats      ?? {}
 
-  const maxTxn   = Math.max(1, ...employees.map(e => e.txn))
-  const maxValue = Math.max(1, ...employees.map(e => e.value))
-
   // Merge attendance into employees - update field mapping
   const attMap = {}
   attendance.forEach(a => { attMap[a.employee_name] = a })
 
   const enriched = employees.map(e => ({
     ...e,
-    // Map new API fields to expected format
+    id: e.employee_id || e.id,
     name: e.employee_name || e.name,
     txn: e.transaction_count || e.txn || 0,
     value: e.total_amount || e.value || 0,
@@ -89,6 +86,9 @@ export default function EmployeePerformance() {
     att: attMap[e.employee_name || e.name] || null,
     rating: RATING(e.transaction_count || e.txn || 0),
   }))
+
+  const maxTxn   = Math.max(1, ...enriched.map(e => e.txn))
+  const maxValue = Math.max(1, ...enriched.map(e => e.value))
 
   const totalTxn    = enriched.reduce((s, e) => s + e.txn, 0)
   const totalValue  = enriched.reduce((s, e) => s + e.value, 0)

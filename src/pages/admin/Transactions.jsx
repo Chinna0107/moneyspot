@@ -167,7 +167,7 @@ export default function AdminTransactions() {
           </div>
         </div>
 
-        <div className="dash-main">
+        <div className="dash-main" style={{ display: 'block', minHeight: 0 }}>
 
           {/* Summary */}
           <div className="dash-stats">

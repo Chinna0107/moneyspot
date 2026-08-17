@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { getTokenByRole } from '../../utils/tokenUtils';
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar';
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import SuperAdminSidebar from '../../components/superadmin/Sidebar';
 import '../../pages/dashboard.css';
@@ -33,7 +33,7 @@ export default function PendingPayments({ role = 'employee' }) {
 
   const fetchCustomers = async () => {
     try {
-      const data = await api('/customers', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await api('/customers/all', { headers: { Authorization: `Bearer ${token}` } });
       setCustomers(Array.isArray(data) ? data : data.customers || []);
     } catch (e) {
       console.error(e);
@@ -91,11 +91,11 @@ export default function PendingPayments({ role = 'employee' }) {
 
   return (
     <div className="dash-page">
-      {role === 'employee' && <EmployeeNavbar />}
+      {role === 'employee' && <EmployeeSidebar />}
       {role === 'admin' && <AdminSidebar />}
       {role === 'superadmin' && <SuperAdminSidebar />}
 
-      <div className="dash-content">
+      <main className="dash-main">
         <div className="dash-topbar">
           <h1>Pending Payments</h1>
         </div>
@@ -209,7 +209,7 @@ export default function PendingPayments({ role = 'employee' }) {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { useMyCustomers } from '../../hooks/useCustomers'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
@@ -62,9 +62,9 @@ export default function CustomerInfo() {
   const totalProfit = txns.reduce((s, t) => s + parseFloat(t.profit||0), 0)
 
   return (
-    <div className="emp-page">
-      <EmployeeNavbar />
-      <div className="emp-page-content">
+    <div className="dashboard">
+      <EmployeeSidebar />
+      <main className="dash-main">
         <div className="emp-page-header"><h1>Customer Information</h1></div>
 
         {error && <div className="dash-alert dash-alert-error">❌ {error}</div>}
@@ -147,7 +147,7 @@ export default function CustomerInfo() {
             )}
           </div>
         </div>
-      </div>
+      </main>
 
       {/* ── Transaction History Slide Panel ── */}
       {selected && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import EmployeeNavbar from '../../components/employee/EmployeeNavbar'
+import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
 import { MdDownload, MdPictureAsPdf, MdTableChart, MdRefresh, MdFilterList } from 'react-icons/md'
@@ -273,13 +273,14 @@ export default function EmployeeReports() {
   }
 
   return (
-    <div className="er-page">
+    <div className="dash-page">
       {selectedTxn && <TxnDetailModal txn={selectedTxn} onClose={() => setSelectedTxn(null)} />}
       {groupTxns  && <GroupTxnsModal label={groupTxns.label} name={groupTxns.name} txns={groupTxns.txns}
         onClose={() => setGroupTxns(null)}
         onViewTxn={t => { setGroupTxns(null); setSelectedTxn(t) }} />}
-      <EmployeeNavbar />
-      <div className="er-content">
+      <EmployeeSidebar />
+      <div className="dash-main" style={{ padding: 0, minHeight: 0 }}>
+        <div className="er-content" style={{ padding: '0 24px 48px', maxWidth: 'none', margin: 0 }}>
 
         {/* ── Header ── */}
         <div className="er-header">
@@ -586,6 +587,7 @@ export default function EmployeeReports() {
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   )

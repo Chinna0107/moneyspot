@@ -4,7 +4,7 @@ import { getTokenByRole } from '../utils/tokenUtils'
 import { cacheGet, cacheSet, cacheClear, TTL } from '../utils/cache'
 
 const empHeaders = () => ({ Authorization: `Bearer ${getTokenByRole('employee') || getTokenByRole('admin')}` })
-const adminHeaders = () => ({ Authorization: `Bearer ${getTokenByRole('admin')}` })
+const adminHeaders = () => ({ Authorization: `Bearer ${getTokenByRole('admin') || getTokenByRole('employee')}` })
 
 // Employee: submit customer request
 export function useAddCustomer() {

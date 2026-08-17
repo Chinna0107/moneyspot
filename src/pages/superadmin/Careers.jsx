@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Sidebar from '../../components/superadmin/Sidebar'
-import { api } from '../../utils/api'
+import { api, apiUpload } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { MdWork, MdAdd, MdEdit, MdDelete, MdClose, MdToggleOn, MdToggleOff, MdLocationOn, MdBusiness } from 'react-icons/md'
 import './superadmin.css'
@@ -34,7 +34,7 @@ export default function CareersAdmin() {
   const load = async () => {
     setLoading(true)
     try {
-      const r = await fetch('/careers?all=1').then(r => r.json())
+      const r = await api('/careers?all=1')
       setJobs(r.jobs || [])
     } catch { setError('Failed to load jobs') }
     setLoading(false)
@@ -67,13 +67,7 @@ export default function CareersAdmin() {
     if (!file) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/upload', { 
-        method: 'POST',
-        headers: { Authorization: `Bearer ${TOKEN()}` },
-        body: fd 
-      }).then(r => r.json())
+      const res = await apiUpload('/upload', file, TOKEN())
       if (res.url) setForm(f => ({ ...f, image_url: res.url }))
       else setFormErr('Failed to upload image')
     } catch (err) { setFormErr('Upload error: ' + err.message) }

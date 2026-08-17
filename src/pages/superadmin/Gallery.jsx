@@ -38,8 +38,8 @@ export default function GalleryAdmin() {
     setLoading(true)
     try {
       const [photoRes, tagRes] = await Promise.all([
-        fetch('/gallery').then(r => r.json()),
-        fetch('/gallery/tags').then(r => r.json()),
+        api('/gallery'),
+        api('/gallery/tags'),
       ])
       setPhotos(photoRes.photos || [])
       setTags(tagRes.tags || [])

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { MdPhotoLibrary, MdClose } from 'react-icons/md'
+import { api } from '../utils/api'
 import './superadmin/Gallery.css'
 import './Gallery.css'
 
@@ -14,8 +15,8 @@ export default function Gallery() {
     const load = async () => {
       try {
         const [pRes, tRes] = await Promise.all([
-          fetch('/gallery').then(r => r.json()),
-          fetch('/gallery/tags').then(r => r.json()),
+          api('/gallery'),
+          api('/gallery/tags'),
         ])
         setPhotos(pRes.photos || [])
         setTags(tRes.tags || [])

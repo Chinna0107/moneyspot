@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { MdLocationOn, MdWork, MdAccessTime, MdBusiness, MdClose, MdSend } from 'react-icons/md'
+import { api } from '../utils/api'
 import './superadmin/Careers.css'
 import './Careers.css'
 
@@ -14,8 +15,7 @@ export default function Careers() {
   const [appErr, setAppErr]       = useState('')
 
   useEffect(() => {
-    fetch('/careers')
-      .then(r => r.json())
+    api('/careers')
       .then(d => { setJobs(d.jobs || []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])

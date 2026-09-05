@@ -146,7 +146,7 @@ export default function RegisterCustomer() {
           
           const txnId = data.data?.data?.session_id || `TXN-${Date.now()}`
           setInitTransactionId(txnId)
-          setSuccessMsg('✅ Aadhar session created. Since this is testing, please enter any 6-digit OTP to proceed.')
+          setSuccessMsg('✅ Aadhar session created. Please enter the 6-digit OTP sent to your mobile number.')
         } else {
           if (!aadharOtp || aadharOtp.length < 4) throw new Error('Please enter the OTP')
           const res = await fetch('http://localhost:3000/api/kyc/aadhaar/verify-otp', {
@@ -156,6 +156,15 @@ export default function RegisterCustomer() {
           })
           const data = await res.json()
           if (!res.ok || !data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.error || data.data?.message || 'Aadhar OTP verification failed')
+          
+          const aadharDetails = data.data?.data || {};
+          setForm(f => ({
+            ...f,
+            profile_image_url: aadharDetails.photo || aadharDetails.profile_image || null,
+            dob: aadharDetails.dob || null,
+            father_name: aadharDetails.care_of || null,
+            aadhar_linked_mobile: aadharDetails.linked_mobile || null
+          }))
           setStep(3)
         }
 
@@ -185,6 +194,22 @@ export default function RegisterCustomer() {
           })
           const data = await res.json()
           if (!res.ok) throw new Error(data.error || 'Mobile OTP verification failed')
+          
+          // Silently fetch CIBIL score
+          try {
+            const cibilRes = await fetch('http://localhost:3000/api/kyc/cibil/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: form.pan_name || form.name || 'Customer', mobile: form.phone, pan: form.pan })
+            });
+            const cibilData = await cibilRes.json();
+            if (cibilData.success && cibilData.data?.data?.credit_score) {
+              setForm(f => ({ ...f, cibil_score: cibilData.data.data.credit_score }));
+            }
+          } catch(err) {
+            console.error('Failed to fetch CIBIL silently:', err);
+          }
+          
           setStep(4)
         }
 
@@ -253,6 +278,12 @@ export default function RegisterCustomer() {
       fd.append('phone', form.phone)
       fd.append('pan', form.pan)
       fd.append('aadhar', form.aadhar)
+      
+      if (form.profile_image_url) fd.append('profile_image_url', form.profile_image_url)
+      if (form.aadhar_linked_mobile) fd.append('aadhar_linked_mobile', form.aadhar_linked_mobile)
+      if (form.dob) fd.append('dob', form.dob)
+      if (form.father_name) fd.append('father_name', form.father_name)
+      if (form.cibil_score) fd.append('cibil_score', form.cibil_score)
       fd.append('branch', form.branch)
       fd.append('referral_name', form.referral_name)
       fd.append('referral_phone', form.referral_phone)
@@ -300,7 +331,14 @@ export default function RegisterCustomer() {
             <img src={logoImg} alt="MoneySpot" className="login-logo-img" style={{ width: 50, height: 50 }} />
           </div>
 
-          <h2>Customer Registration</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Customer Registration</h2>
+            {form.cibil_score && (
+              <div style={{ background: form.cibil_score >= 750 ? '#d1fae5' : '#fef3c7', color: form.cibil_score >= 750 ? '#059669' : '#d97706', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                💳 CIBIL: {form.cibil_score}
+              </div>
+            )}
+          </div>
           {step <= 6 && <p className="login-sub">Step {step} of 6</p>}
 
           {step <= 6 && (
@@ -319,7 +357,7 @@ export default function RegisterCustomer() {
               <div className="form-group">
                 <label>PAN Number *</label>
                 <input required placeholder="ABCDE1234F" maxLength={10}
-                  value={form.pan} onChange={e => { setError(''); setForm({ ...form, pan: e.target.value.toUpperCase() }) }} />
+                  value={form.pan} onChange={e => { setError(''); setForm(f => ({ ...f, pan: e.target.value.toUpperCase() })) }} />
                 <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>We will verify this with Idto.</p>
               </div>
             )}
@@ -340,7 +378,7 @@ export default function RegisterCustomer() {
                   )}
                 </div>
                 <input required type="tel" placeholder="12-digit Aadhar" maxLength={12} disabled={!!initTransactionId}
-                  value={form.aadhar} onChange={e => { setError(''); setForm({ ...form, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) }) }} />
+                  value={form.aadhar} onChange={e => { setError(''); setForm(f => ({ ...f, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) })) }} />
                 
                 {initTransactionId && (
                   <div style={{ marginTop: 15 }}>
@@ -362,7 +400,7 @@ export default function RegisterCustomer() {
                   )}
                 </div>
                 <input required type="tel" placeholder="10-digit mobile" maxLength={10} disabled={mobileOtpSent}
-                  value={form.phone} onChange={e => { setError(''); setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }) }} />
+                  value={form.phone} onChange={e => { setError(''); setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })) }} />
                 {mobileOtpSent && (
                   <div style={{ marginTop: 15 }}>
                     <label>Enter OTP sent to your mobile *</label>
@@ -394,7 +432,7 @@ export default function RegisterCustomer() {
                   )}
                 </div>
                 <input required type="email" placeholder="example@email.com" disabled={emailOtpSent}
-                  value={form.email} onChange={e => { setError(''); setForm({ ...form, email: e.target.value }) }} />
+                  value={form.email} onChange={e => { setError(''); setForm(f => ({ ...f, email: e.target.value })) }} />
                 {emailOtpSent && (
                   <div style={{ marginTop: 15 }}>
                     <label>Enter OTP sent to your email *</label>
@@ -428,18 +466,18 @@ export default function RegisterCustomer() {
                 
                 <label>Account Number *</label>
                 <input required type="text" placeholder="Enter Account Number" disabled={!!form.bank_verified_name}
-                  value={form.account_number} onChange={e => { setError(''); setForm({ ...form, account_number: e.target.value.replace(/\\D/g, '') }) }} style={{ marginBottom: 15 }} />
+                  value={form.account_number} onChange={e => { setError(''); setForm(f => ({ ...f, account_number: e.target.value.replace(/\\D/g, '') })) }} style={{ marginBottom: 15 }} />
 
                 <label>IFSC Code *</label>
                 <input required type="text" placeholder="Enter IFSC Code" disabled={!!form.bank_verified_name}
-                  value={form.ifsc_code} onChange={e => { setError(''); setForm({ ...form, ifsc_code: e.target.value.toUpperCase() }) }} />
+                  value={form.ifsc_code} onChange={e => { setError(''); setForm(f => ({ ...f, ifsc_code: e.target.value.toUpperCase() })) }} />
               </div>
             )}
 
             {step === 6 && (
               <div className="form-group">
                 <label>Select Branch *</label>
-                <select required value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 15 }}>
+                <select required value={form.branch} onChange={e => setForm(f => ({ ...f, branch: e.target.value }))} style={{ width: '100%', padding: '12px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 15 }}>
                   <option value="" disabled>{loadingBranches ? 'Loading branches...' : 'Select your nearest branch'}</option>
                   {branches.map(b => (
                     <option key={b} value={b}>{b}</option>
@@ -450,15 +488,15 @@ export default function RegisterCustomer() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
                   <div>
                     <label style={{ fontSize: 12 }}>PAN Card Image *</label>
-                    <input type="file" required onChange={e => setForm({...form, pan_img: e.target.files[0]})} />
+                    <input type="file" required onChange={e => setForm(f => ({ ...f, pan_img: e.target.files[0]}))} />
                   </div>
                   <div>
                     <label style={{ fontSize: 12 }}>Aadhar Card Image *</label>
-                    <input type="file" required onChange={e => setForm({...form, aadhar_img: e.target.files[0]})} />
+                    <input type="file" required onChange={e => setForm(f => ({ ...f, aadhar_img: e.target.files[0]}))} />
                   </div>
                   <div>
                     <label style={{ fontSize: 12 }}>Credit Card Front Image *</label>
-                    <input type="file" required onChange={e => setForm({...form, card_front_img: e.target.files[0]})} />
+                    <input type="file" required onChange={e => setForm(f => ({ ...f, card_front_img: e.target.files[0]}))} />
                   </div>
                 </div>
               </div>

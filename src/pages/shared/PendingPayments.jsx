@@ -26,7 +26,13 @@ export default function PendingPayments({ role = 'employee' }) {
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_mode: 'Cash', reference_note: '' });
   const [followUpForm, setFollowUpForm] = useState({ contact_mode: 'Call', customer_response: '', next_follow_up_date: '' });
   const [ptpForm, setPtpForm] = useState({ ptp_date: '', ptp_amount: '', note: '' });
-  const [newEntryForm, setNewEntryForm] = useState({ cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+  const [newEntryForm, setNewEntryForm] = useState({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+
+  // Customer live search (for new pending entry modal)
+  const [custSearch, setCustSearch] = useState('');
+  const [custResults, setCustResults] = useState([]);
+  const [custSelected, setCustSelected] = useState(null);
+  const [custMode, setCustMode] = useState('search'); // 'search' | 'manual'
 
   const token = getTokenByRole(role);
 
@@ -50,6 +56,18 @@ export default function PendingPayments({ role = 'employee' }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Debounced customer search
+  useEffect(() => {
+    if (custMode !== 'search') return;
+    if (custSearch.length < 2 || custSelected) { setCustResults([]); return; }
+    const t = setTimeout(() => {
+      api(`/customers/approved?search=${encodeURIComponent(custSearch)}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(d => setCustResults(Array.isArray(d) ? d.slice(0, 8) : []))
+        .catch(() => setCustResults([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [custSearch, custSelected, custMode]);
 
   const openDrawer = async (id) => {
     setActiveDrawerId(id);
@@ -121,7 +139,8 @@ export default function PendingPayments({ role = 'employee' }) {
         body: JSON.stringify(newEntryForm)
       });
       setNewEntryModal(false);
-      setNewEntryForm({ cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+      setNewEntryForm({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+      setCustSearch(''); setCustResults([]); setCustSelected(null); setCustMode('search');
       loadData();
     } catch (e) {
       alert(e.message);
@@ -396,14 +415,82 @@ export default function PendingPayments({ role = 'employee' }) {
             <div className="dash-modal" style={{ width: 500 }}>
               <h2>New Pending Entry</h2>
               <form onSubmit={handleNewEntry}>
-                <div className="dash-form-group">
-                  <label>Customer Name</label>
-                  <input required value={newEntryForm.cust_name} onChange={e => setNewEntryForm({...newEntryForm, cust_name: e.target.value})} />
+                {/* Customer Search / Manual Toggle */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                  <button type="button"
+                    onClick={() => { setCustMode('search'); setCustSearch(''); setCustResults([]); setCustSelected(null); setNewEntryForm(f => ({...f, customer_id: '', cust_name: '', cust_mobile: ''})); }}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', background: custMode === 'search' ? '#402070' : '#f1f5f9', color: custMode === 'search' ? '#fff' : '#64748b' }}>
+                    🔍 Search from DB
+                  </button>
+                  <button type="button"
+                    onClick={() => { setCustMode('manual'); setCustSearch(''); setCustResults([]); setCustSelected(null); setNewEntryForm(f => ({...f, customer_id: '', cust_name: '', cust_mobile: ''})); }}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', background: custMode === 'manual' ? '#402070' : '#f1f5f9', color: custMode === 'manual' ? '#fff' : '#64748b' }}>
+                    ✏️ Manual Entry
+                  </button>
                 </div>
-                <div className="dash-form-group">
-                  <label>Mobile Number</label>
-                  <input required maxLength={10} value={newEntryForm.cust_mobile} onChange={e => setNewEntryForm({...newEntryForm, cust_mobile: e.target.value})} />
-                </div>
+
+                {custMode === 'search' ? (
+                  <div className="dash-form-group" style={{ position: 'relative', zIndex: 10 }}>
+                    <label>Search Customer</label>
+                    <input
+                      value={custSearch}
+                      onChange={e => { setCustSearch(e.target.value); if (custSelected) { setCustSelected(null); setNewEntryForm(f => ({...f, customer_id: '', cust_name: '', cust_mobile: ''})); } }}
+                      placeholder="Type name, phone or PAN..."
+                      autoComplete="off"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                    {/* Dropdown */}
+                    {custResults.length > 0 && !custSelected && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1.5px solid #e2e8f0', zIndex: 999, maxHeight: 240, overflowY: 'auto', marginTop: 4 }}>
+                        {custResults.map(c => (
+                          <div key={c.id}
+                            onClick={() => {
+                              setCustSelected(c);
+                              setCustSearch(c.name);
+                              setCustResults([]);
+                              setNewEntryForm(f => ({...f, customer_id: c.id, cust_name: c.name, cust_mobile: c.phone || ''}));
+                            }}
+                            style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'}
+                            onMouseLeave={e => e.currentTarget.style.background = ''}
+                          >
+                            <div style={{ fontWeight: 700, color: '#402070', fontSize: 14 }}>{c.name}</div>
+                            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{c.phone} · PAN: {c.pan || '—'} · {c.branch || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* No results */}
+                    {custSearch.length >= 2 && custResults.length === 0 && !custSelected && (
+                      <div style={{ marginTop: 6, padding: '8px 12px', background: '#fef9c3', borderRadius: 8, fontSize: 12, color: '#854d0e', fontWeight: 600 }}>
+                        No customer found — switch to Manual Entry to add details directly.
+                      </div>
+                    )}
+                    {/* Selected customer chip */}
+                    {custSelected && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, border: '1.5px solid #86efac' }}>
+                        <span style={{ fontSize: 20 }}>✅</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, color: '#166534', fontSize: 14 }}>{custSelected.name}</div>
+                          <div style={{ fontSize: 12, color: '#4ade80' }}>{custSelected.phone} · {custSelected.branch || '—'}</div>
+                        </div>
+                        <button type="button" onClick={() => { setCustSelected(null); setCustSearch(''); setNewEntryForm(f => ({...f, customer_id: '', cust_name: '', cust_mobile: ''})); }}
+                          style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 16, cursor: 'pointer', padding: 4 }}>✕</button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="dash-form-group">
+                      <label>Customer Name *</label>
+                      <input required value={newEntryForm.cust_name} onChange={e => setNewEntryForm({...newEntryForm, cust_name: e.target.value})} placeholder="Enter customer name" />
+                    </div>
+                    <div className="dash-form-group">
+                      <label>Mobile Number *</label>
+                      <input required maxLength={10} value={newEntryForm.cust_mobile} onChange={e => setNewEntryForm({...newEntryForm, cust_mobile: e.target.value})} placeholder="10-digit mobile" />
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', gap: 10 }}>
                   <div className="dash-form-group" style={{ flex: 1 }}>
                     <label>Amount (₹)</label>

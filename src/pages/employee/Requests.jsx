@@ -96,16 +96,33 @@ export default function Requests() {
                   ) : (
                     <table className="dash-table">
                       <thead>
-                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Acc No.</th><th>Branch</th><th>Source</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>DOB</th><th>Father Name</th><th>Acc No.</th><th>Branch</th><th>Source</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
                       </thead>
                       <tbody>
                         {rows.map(c => (
                           <tr key={c.id}>
-                            <td><strong>{c.name}</strong></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {c.profile_image_url ? (
+                                  <img src={c.profile_image_url.startsWith('http') || c.profile_image_url.startsWith('data:image') ? c.profile_image_url : `data:image/jpeg;base64,${c.profile_image_url}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👤</div>
+                                )}
+                                <div>
+                                  <strong>{c.name}</strong>
+                                  {c.cibil_score && <div style={{ fontSize: 11, color: c.cibil_score >= 750 ? '#10b981' : '#f59e0b', marginTop: 4, fontWeight: 700 }}>💳 CIBIL: {c.cibil_score}</div>}
+                                </div>
+                              </div>
+                            </td>
                             <td>{c.email}</td>
                             <td>{c.phone}</td>
                             <td>{c.pan}</td>
-                            <td>{c.aadhar}</td>
+                            <td>
+                              <div>{c.aadhar}</div>
+                              {c.aadhar_linked_mobile && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>📱 {c.aadhar_linked_mobile}</div>}
+                            </td>
+                            <td>{c.dob || '—'}</td>
+                            <td>{c.father_name || '—'}</td>
                             <td>{c.acc_number}</td>
                             <td>{c.branch || '—'}</td>
                             <td>{c.source || '—'}</td>

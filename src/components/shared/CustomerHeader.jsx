@@ -43,8 +43,21 @@ export default function CustomerHeader({ customer, txns = [], dark = false, styl
   const subTextColor = dark ? 'rgba(255,255,255,0.7)' : '#475569';
   const dividerColor = dark ? 'rgba(255,255,255,0.2)' : '#cbd5e1';
 
+  let profilePic = customer.profile_image_url;
+  if (profilePic && !profilePic.startsWith('http') && !profilePic.startsWith('data:image')) {
+    profilePic = `data:image/jpeg;base64,${profilePic}`;
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', ...style }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', ...style }}>
+      {profilePic ? (
+        <img src={profilePic} alt={customer.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${dividerColor}` }} />
+      ) : (
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: dark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: `2px solid ${dividerColor}`, color: subTextColor }}>
+          👤
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
       {/* Row 1: Name */}
       <div style={{ fontSize: '20px', fontWeight: 900, color: textColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
         {customer.name}
@@ -82,7 +95,16 @@ export default function CustomerHeader({ customer, txns = [], dark = false, styl
         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           📅 Last Txn: {daysAgo}
         </span>
+        {customer.cibil_score && (
+          <>
+            <span style={{ color: dividerColor }}>|</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: customer.cibil_score >= 750 ? '#10b981' : customer.cibil_score >= 650 ? '#f59e0b' : '#ef4444' }}>
+              💳 CIBIL: {customer.cibil_score}
+            </span>
+          </>
+        )}
       </div>
+    </div>
     </div>
   );
 }

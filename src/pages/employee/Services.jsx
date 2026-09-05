@@ -192,13 +192,14 @@ export default function Services() {
     setSearch(c.name)
     setLoadingProfile(true)
     try {
-      const [profile, txns] = await Promise.all([
+      const [profile, txns, pendingData] = await Promise.all([
         api(`/customers/${c.id}`, { headers: auth() }),
         api(`/master/transactions?customer_id=${c.id}`, { headers: auth() }).catch(() => []),
+        api(`/collections/customer-balance?customer_id=${c.id}&cust_mobile=${encodeURIComponent(c.phone || '')}`, { headers: auth() }).catch(() => ({ pending_count: 0, total_remaining: 0, entries: [] })),
       ])
-      setCustomerProfile({ ...profile, transactions: Array.isArray(txns) ? txns : [] })
+      setCustomerProfile({ ...profile, transactions: Array.isArray(txns) ? txns : [], pendingData })
     } catch {
-      setCustomerProfile({ ...c, transactions: [] })
+      setCustomerProfile({ ...c, transactions: [], pendingData: { pending_count: 0, total_remaining: 0, entries: [] } })
     }
     setLoadingProfile(false)
   }
@@ -492,6 +493,52 @@ export default function Services() {
                                 </div>
                               )}
 
+                              {/* Pending Balance */}
+                              {customerProfile.pendingData && customerProfile.pendingData.pending_count > 0 && (
+                                <div style={{ borderTop:'2px solid #fee2e2', background:'#fff5f5', padding:'10px 14px' }}>
+                                  <div style={{ fontSize:9, fontWeight:700, color:'#b91c1c', textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>⚠️ Pending Balance</div>
+                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                                    <span style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>{customerProfile.pendingData.pending_count} pending entr{customerProfile.pendingData.pending_count === 1 ? 'y' : 'ies'}</span>
+                                    <span style={{ fontSize:16, fontWeight:900, color:'#dc2626' }}>₹{parseFloat(customerProfile.pendingData.total_remaining).toLocaleString('en-IN')}</span>
+                                  </div>
+                                  {customerProfile.pendingData.entries.map(e => (
+                                    <div key={e.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 8px', background:'#fee2e2', borderRadius:6, marginBottom:4, fontSize:11 }}>
+                                      <span style={{ fontWeight:700, color:'#991b1b' }}>{e.status}</span>
+                                      <span style={{ color:'#b91c1c', fontWeight:700 }}>₹{parseFloat(e.remaining_amount).toLocaleString('en-IN')}</span>
+                                      <span style={{ color:'#64748b' }}>{e.age_days | 0}d old</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Bill Due Dates */}
+                              {(() => {
+                                const billTxns = txns.filter(t => t.bill_due_date).sort((a, b) => new Date(a.bill_due_date) - new Date(b.bill_due_date))
+                                if (billTxns.length === 0) return null
+                                const now = new Date()
+                                return (
+                                  <div style={{ borderTop:'2px solid #fde68a', background:'#fffbeb', padding:'10px 14px' }}>
+                                    <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>🗓️ Bill Due Dates</div>
+                                    {billTxns.slice(0, 5).map((t, i) => {
+                                      const dueDate = new Date(t.bill_due_date)
+                                      dueDate.setDate(dueDate.getDate() + 30)
+                                      const diffDays = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24))
+                                      const isOverdue = diffDays < 0
+                                      const isUrgent  = diffDays >= 0 && diffDays <= 3
+                                      return (
+                                        <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 8px', background: isOverdue ? '#fee2e2' : isUrgent ? '#fef3c7' : '#f0fdf4', borderRadius:6, marginBottom:4, fontSize:11 }}>
+                                          <span style={{ fontWeight:700, color:'#374151' }}>{t.bill_platform || 'Bill'}</span>
+                                          <span style={{ fontWeight:600, color:'#374151' }}>₹{parseFloat(t.bill_amount || 0).toLocaleString('en-IN')}</span>
+                                          <span style={{ fontWeight:700, color: isOverdue ? '#dc2626' : isUrgent ? '#d97706' : '#059669' }}>
+                                            {isOverdue ? `${Math.abs(diffDays)}d overdue` : diffDays === 0 ? 'Due Today!' : `Due ${dueDate.toLocaleDateString('en-IN')}`}
+                                          </span>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )
+                              })()}
+
                             </div>
                           )
                         })()}
@@ -649,6 +696,42 @@ export default function Services() {
                   <div style={{ fontWeight: 800, color: '#402070', fontSize: 15 }}>{form.cust_name}</div>
                   <div style={{ color: '#6b7280' }}>PAN: <strong>{form.cust_pan || '—'}</strong></div>
                   <div style={{ color: '#6b7280' }}>Mobile: <strong>{form.cust_mobile || '—'}</strong></div>
+                  
+                  {customerProfile && customerProfile.pendingData && customerProfile.pendingData.pending_count > 0 && (
+                    <div style={{ marginTop: 8, padding: 10, background: '#fff5f5', borderRadius: 8, border: '1.5px solid #fecaca' }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase', marginBottom: 4 }}>⚠️ Pending Balance</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: '#dc2626' }}>₹{parseFloat(customerProfile.pendingData.total_remaining).toLocaleString('en-IN')}</div>
+                      <div style={{ fontSize: 11, color: '#991b1b', marginTop: 2 }}>{customerProfile.pendingData.pending_count} pending entr{customerProfile.pendingData.pending_count === 1 ? 'y' : 'ies'}</div>
+                    </div>
+                  )}
+
+                  {customerProfile && (() => {
+                    const billTxns = (customerProfile.transactions || []).filter(t => t.bill_due_date).sort((a, b) => new Date(a.bill_due_date) - new Date(b.bill_due_date))
+                    if (billTxns.length === 0) return null
+                    const now = new Date()
+                    return (
+                      <div style={{ marginTop: 8, padding: 10, background: '#fffbeb', borderRadius: 8, border: '1.5px solid #fde68a' }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', marginBottom: 6 }}>🗓️ Upcoming Dues</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {billTxns.slice(0, 3).map((t, i) => {
+                            const dueDate = new Date(t.bill_due_date)
+                            dueDate.setDate(dueDate.getDate() + 30)
+                            const diffDays = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24))
+                            const isOverdue = diffDays < 0
+                            const isUrgent  = diffDays >= 0 && diffDays <= 3
+                            return (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                                <span style={{ fontWeight: 700, color: '#374151' }}>{t.bill_platform || 'Bill'}</span>
+                                <span style={{ fontWeight: 700, color: isOverdue ? '#dc2626' : isUrgent ? '#d97706' : '#059669' }}>
+                                  {isOverdue ? `Overdue (${dueDate.getDate()}/${dueDate.getMonth()+1})` : diffDays === 0 ? 'Today!' : `${dueDate.getDate()}/${dueDate.getMonth()+1}`}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             )}

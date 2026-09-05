@@ -6,7 +6,8 @@ import { getTokenByRole } from '../../utils/tokenUtils'
 import { useBranches } from '../../hooks/useSuperAdmin'
 import { useSuperAdminCustomers } from '../../hooks/useLeads'
 import CustomerHeader from '../../components/shared/CustomerHeader'
-import CustomerFilterPanel from '../../components/shared/CustomerFilterPanel'
+import { getCustomerTier } from '../../utils/tierUtils'
+import { getActivityStatus } from '../../utils/customerBehaviorUtils'
 import '../../pages/employee/CustomerInfo.css'
 import './superadmin.css'
 import './Dashboard.css'
@@ -34,7 +35,6 @@ export default function SuperAdminCustomers() {
   const [tagging, setTagging]     = useState(false)
   const { branches }              = useBranches()
   const { customers, stats, branchStats, loading, load } = useSuperAdminCustomers(branch, status, search)
-  const [panelFilteredCustomers, setPanelFilteredCustomers] = useState([])
 
   const downloadImage = async (url, filename) => {
     try {
@@ -80,21 +80,23 @@ export default function SuperAdminCustomers() {
   const exportExcel = () => {
     if (!customers.length) return alert('No customers to export')
     const rows = customers.map(c => ({
-      'Name':           c.name || '',
-      'Phone':          c.phone || '',
-      'Email':          c.email || '',
-      'PAN':            c.pan || '',
-      'Aadhar':         c.aadhar || '',
-      'Account No':     c.acc_number || '',
-      'Branch':         c.branch || '',
-      'Source':         c.source || '',
-      'Coins':          c.coins ?? 0,
-      'Status':         c.status || '',
-      'Tag':            c.tag || '',
-      'Added By':       c.added_by_name || '',
-      'Transactions':   c.txn_count || 0,
-      'Total Amount (₹)': parseFloat(c.total_amount) || 0,
-      'Joined Date':    new Date(c.created_at).toLocaleDateString('en-IN'),
+      'Name':              c.name || '',
+      'Phone':             c.phone || '',
+      'Email':             c.email || '',
+      'PAN':               c.pan || '',
+      'Aadhar':            c.aadhar || '',
+      'Account No':        c.acc_number || '',
+      'Branch':            c.branch || '',
+      'Tier':              getCustomerTier(c.total_amount).label.replace(/[^\w\s]/g, '').trim(),
+      'Activity Status':   getActivityStatus(c, []).label,
+      'Source':            c.source || '',
+      'Coins':             c.coins ?? 0,
+      'Status':            c.status || '',
+      'Tag':               c.tag || '',
+      'Added By':          c.added_by_name || '',
+      'Transactions':      c.txn_count || 0,
+      'Lifetime Volume (₹)': parseFloat(c.total_amount) || 0,
+      'Joined Date':       new Date(c.created_at).toLocaleDateString('en-IN'),
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -105,34 +107,40 @@ export default function SuperAdminCustomers() {
   const exportPDF = () => {
     if (!customers.length) return alert('No customers to export')
     const dateStr = new Date().toLocaleDateString('en-IN')
-    const rows = customers.map((c, i) => `
+    const rows = customers.map((c, i) => {
+      const tier     = getCustomerTier(c.total_amount)
+      const activity = getActivityStatus(c, [])
+      return `
       <tr>
         <td>${i + 1}</td>
         <td><strong>${c.name}</strong><br/><span style="color:#64748b;font-size:11px">${c.email || ''}</span></td>
         <td>${c.phone || '—'}</td>
         <td style="font-family:monospace">${c.pan || '—'}</td>
         <td>${c.branch || '—'}</td>
+        <td><span style="background:${tier.bg};color:${tier.color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${tier.label.replace(/[^\w\s]/g, '').trim()}</span></td>
+        <td><span style="background:${activity.bg};color:${activity.color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${activity.icon} ${activity.label}</span></td>
         <td>${c.source || '—'}</td>
         <td style="color:#b8860b;font-weight:700">🪙 ${c.coins ?? 0}</td>
         <td>${c.txn_count || 0}</td>
-        <td style="color:#059669;font-weight:700">₹${fmt(c.total_amount || 0)}</td>
+        <td style="color:#059669;font-weight:700;font-size:12px">₹${fmt(c.total_amount || 0)}</td>
         <td><span style="background:${STATUS_STYLE[c.status]?.bg || '#f1f5f9'};color:${STATUS_STYLE[c.status]?.color || '#64748b'};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${c.status}</span></td>
         <td style="font-size:11px;color:#64748b">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
-      </tr>`).join('')
+      </tr>`
+    }).join('')
     const html = `<html><head><title>Customers Export</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 24px; color: #1a0a2e; }
         h2   { color: #402070; margin-bottom: 4px; }
         p    { color: #64748b; font-size: 12px; margin: 0 0 16px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { background: #402070; color: #fff; padding: 9px 12px; text-align: left; font-size: 11px; }
-        td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #402070; color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; }
+        td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
         tr:nth-child(even) td { background: #f8fafc; }
       </style></head><body>
       <h2>👥 MoneySpot — Customers Report</h2>
       <p>Exported on ${dateStr} · ${customers.length} customers${branch ? ` · Branch: ${branch}` : ''}${status ? ` · Status: ${status}` : ''}</p>
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Coins</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Joined</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Tier</th><th>Activity</th><th>Source</th><th>Coins</th><th>Txns</th><th>Lifetime Volume</th><th>Status</th><th>Joined</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       </body></html>`
@@ -240,24 +248,23 @@ export default function SuperAdminCustomers() {
             </div>
           </div>
 
-          <CustomerFilterPanel customers={customers} onFilterChange={setPanelFilteredCustomers} />
 
           {/* ── Table ── */}
           <div className="sa-card">
             <div className="sa-card-header">
-              <h2>Customers ({panelFilteredCustomers.length})</h2>
+              <h2>Customers ({customers.length})</h2>
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Click row to view full details</span>
             </div>
             <div className="sa-table-wrap">
-              {loading ? <div className="dash-loading">Loading...</div> : panelFilteredCustomers.length === 0 ? (
+              {loading ? <div className="dash-loading">Loading...</div> : customers.length === 0 ? (
                 <div className="sa-empty">No customers found</div>
               ) : (
                 <table className="sa-table">
                   <thead>
-                    <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
+                    <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Tier</th><th>Activity</th><th>Source</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
                   </thead>
                   <tbody>
-                    {panelFilteredCustomers.map(c => {
+                    {customers.map(c => {
                       const ss = STATUS_STYLE[c.status] || STATUS_STYLE.pending
                       return (
                         <tr key={c.id} onClick={() => openCustomer(c)} style={{ cursor: 'pointer' }}
@@ -278,6 +285,12 @@ export default function SuperAdminCustomers() {
                           </td>
                           <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.pan}</td>
                           <td><span style={{ background: '#ede9fe', color: '#402070', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{c.branch || '—'}</span></td>
+                          <td>{
+                            (() => { const t = getCustomerTier(c.total_amount); return <span style={{ background: t.bg, color: t.color, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>{t.label}</span> })()
+                          }</td>
+                          <td>{
+                            (() => { const a = getActivityStatus(c, []); return <span style={{ background: a.bg, color: a.color, padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 3 }}>{a.icon} {a.label}</span> })()
+                          }</td>
                           <td style={{ fontSize: 12 }}>{c.source || '—'}</td>
                           <td style={{ fontWeight: 700, color: '#d4af37', fontSize: 13 }}>🪙 {c.coins ?? 0}</td>
                           <td>

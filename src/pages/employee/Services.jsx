@@ -5,6 +5,10 @@ import { api } from '../../utils/api'
 import { getTokenByRole, getUserByRole } from '../../utils/tokenUtils'
 import { useCharges } from '../../hooks/useCharges'
 import { cacheGet, cacheSet, TTL } from '../../utils/cache'
+import { MdArrowBack, MdWarning, MdInfoOutline, MdCheckCircle, MdError, MdContentCopy, MdPrint } from 'react-icons/md'
+import { CustomerBehaviorTags, getActivityStatus, getBehaviorTags } from '../../utils/customerBehaviorUtils'
+import { getCustomerTier, TierBadge } from '../../utils/tierUtils'
+import CustomerHeader from '../../components/shared/CustomerHeader'
 import '../../pages/dashboard.css'
 import './Services.css'
 
@@ -226,7 +230,6 @@ export default function Services() {
   const handleSubmit = async e => {
     e.preventDefault()
     if (!form.cust_name.trim()) { setError('Customer name is required'); return }
-    if (!form.cust_pan.trim())  { setError('Customer PAN is required'); return }
     setSaving(true); setMsg(''); setError('')
     try {
       const mainAmount = parseFloat(form.amount) || 0
@@ -424,16 +427,13 @@ export default function Services() {
                                 <div style={{ position:'absolute', top:-30, right:-30, width:120, height:120, borderRadius:'50%', background:'rgba(212,175,55,0.15)', filter:'blur(20px)' }} />
                                 <div style={{ position:'absolute', bottom:-20, left:'20%', width:80, height:80, borderRadius:'50%', background:'rgba(64,32,112,0.3)', filter:'blur(15px)' }} />
                                 <div style={{ position:'relative', zIndex:1, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                                  <div>
-                                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                                      <span style={{ fontWeight:900, color:'#fff', fontSize:17 }}>{customerProfile.name}</span>
+                                  <div style={{ flex: 1 }}>
+                                    <CustomerHeader customer={customerProfile} txns={txns} dark={true} style={{ marginBottom: 12 }} />
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                                       {badge && <span style={{ background:badge.bg, color:badge.color, fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20 }}>{badge.label}</span>}
                                       {tag && <span style={{ background: tc.bg, color: tc.color, fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20, border:`1px solid ${tc.border}` }}>{tc.icon} {tc.label}</span>}
                                     </div>
                                     <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)' }}>ID: #{customerProfile.id} · {customerProfile.branch || '—'}</div>
-                                    <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:2 }}>
-                                      <span style={{ background:'rgba(16,185,129,0.2)', border:'1px solid rgba(16,185,129,0.3)', color:'#10b981', padding:'1px 8px', borderRadius:20, fontSize:10, fontWeight:700 }}>✅ {customerProfile.status}</span>
-                                    </div>
                                   </div>
                                   <button type="button" onClick={clearCustomer} style={{ background:'rgba(255,255,255,0.15)', color:'#fff', border:'none', borderRadius:8, padding:'5px 12px', cursor:'pointer', fontSize:12, fontWeight:700 }}>✕ Clear</button>
                                 </div>
@@ -503,11 +503,6 @@ export default function Services() {
                 ) : (
                   <div className="dash-form-grid">
                     {fg('Customer Name *', <input required placeholder="Full name" value={form.cust_name} onChange={e => set('cust_name', e.target.value)} />)}
-                    {fg('PAN Number *', <>
-                      <input required placeholder="ABCDE1234F" maxLength={10} value={form.cust_pan} onChange={e => set('cust_pan', e.target.value.toUpperCase())} />
-                      {form.cust_pan && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.cust_pan) && <span style={{ fontSize: 11, color: '#dc2626' }}>Format: ABCDE1234F</span>}
-                    </>)}
-                    {fg('Aadhar Number', inp('cust_aadhar', '12-digit Aadhar'))}
                     {fg('Mobile Number', inp('cust_mobile', '10-digit mobile'))}
                   </div>
                 )}
@@ -637,7 +632,7 @@ export default function Services() {
 
                 {svcType && (
                   <button type="submit" className="dash-btn dash-btn-primary"
-                    disabled={saving || !form.cust_name || !form.cust_pan}>
+                    disabled={saving || !form.cust_name}>
                     {saving ? 'Submitting...' : '✅ Submit Transaction'}
                   </button>
                 )}

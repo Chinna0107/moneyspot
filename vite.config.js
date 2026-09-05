@@ -41,7 +41,9 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/master':         { target: backendUrl, changeOrigin: true },
+        '/targets':        { target: backendUrl, changeOrigin: true },
         '/assignments':    { target: backendUrl, changeOrigin: true },
+        '/collections':    { target: backendUrl, changeOrigin: true },
         '/superadmin': {
           target: backendUrl,
           changeOrigin: true,

@@ -22,6 +22,17 @@ export function useSuperAdminAuth() {
     setLoading(true); setError(''); setSuccess('')
     try {
       const data = await api('/auth/superadmin/verify-mpin', { method: 'POST', body: JSON.stringify({ email, mpin }) })
+      setSuccess('MPIN verified!')
+      return data
+    } catch (err) { setError(err.message); return null }
+    finally { setLoading(false) }
+  }
+
+  // Step-3
+  const verifyOtp = async ({ email, otp }) => {
+    setLoading(true); setError(''); setSuccess('')
+    try {
+      const data = await api('/auth/superadmin/verify-otp', { method: 'POST', body: JSON.stringify({ email, otp }) })
       setSuccess('Login successful!')
       return data
     } catch (err) { setError(err.message); return null }
@@ -41,5 +52,5 @@ export function useSuperAdminAuth() {
     finally { setLoading(false) }
   }
 
-  return { verifyCredentials, verifyMpin, register, loading, error, success, setError, setSuccess }
+  return { verifyCredentials, verifyMpin, verifyOtp, register, loading, error, success, setError, setSuccess }
 }

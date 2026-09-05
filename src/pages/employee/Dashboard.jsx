@@ -8,7 +8,7 @@ import './EmployeeDashboard.css'
 const auth   = () => ({ Authorization: `Bearer ${getTokenByRole('employee') || getTokenByRole('admin')}` })
 const fmt    = n => Number(n).toLocaleString('en-IN')
 const fmtVal = n => { const v = parseFloat(n); if (v >= 100000) return `₹${(v/100000).toFixed(1)}L`; if (v >= 1000) return `₹${(v/1000).toFixed(1)}K`; return `₹${fmt(v)}` }
-const TARGET = 25
+// TARGET constant removed
 
 function AnimatedNumber({ value, prefix = '', suffix = '' }) {
   const [display, setDisplay] = useState(0)
@@ -56,6 +56,33 @@ function StatCard({ icon, label, value, sub, color, delay = 0, growth }) {
   )
 }
 
+const DonutChart = ({ pct, title, subtitle, color, isZero }) => {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - ((isZero ? 0 : pct) / 100) * circumference;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24 }}>
+      <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0 }}>
+        <svg width="100" height="100" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="50" cy="50" r={radius} stroke="#f1f5f9" strokeWidth="10" fill="none" />
+          <circle cx="50" cy="50" r={radius} stroke={isZero ? '#e2e8f0' : color} strokeWidth="10" fill="none"
+            strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 1.5s ease-in-out' }} />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <strong style={{ fontSize: 20, color: '#1a0a2e', lineHeight: 1 }}>{pct}%</strong>
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{title}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#1a0a2e' }}>{subtitle}</div>
+      </div>
+    </div>
+  )
+}
+
 export default function EmployeeDashboard() {
   const [data, setData]           = useState(null)
   const [loading, setLoading]     = useState(true)
@@ -71,17 +98,20 @@ export default function EmployeeDashboard() {
     setGreeting(h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening')
   }, [])
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback(async () => {
     setLoading(true)
-    Promise.all([
-      api('/dashboard/employee/stats', { headers: auth() }),
-      api('/dashboard/employee/target', { headers: auth() })
-    ]).then(([d, t]) => { 
-        setData(d); 
-        setTargetData(t); 
-        setLoading(false) 
-      })
-      .catch(() => setLoading(false))
+    try {
+      const [d, t, p, cRes, dueRes] = await Promise.all([
+        api('/dashboard/employee/stats', { headers: auth() }),
+        api('/dashboard/employee/target', { headers: auth() }),
+        api('/dashboard/pending-payments', { headers: auth() }).catch(() => []),
+        api('/customers/my', { headers: auth() }).catch(() => []),
+        api('/dashboard/bill-due-dates/employee', { headers: auth() }).catch(() => [])
+      ])
+      setData({ ...d, targets: t, pendingPayments: p, customers: cRes, dueDates: dueRes })
+      setTargetData(t)
+    } catch (e) {}
+    setLoading(false)
   }, [])
 
   useEffect(() => { refetch() }, [refetch])
@@ -100,15 +130,88 @@ export default function EmployeeDashboard() {
   const s       = data?.stats       ?? {}
   const txns    = data?.transactions ?? []
   const att     = data?.attendance  ?? null
+
+  // --- Calculations for Modules ---
+  const pending = Array.isArray(data?.pendingPayments) ? data.pendingPayments : []
+  let outTotal = 0, outCusts = new Set(), out0_30 = 0, out31_60 = 0, out61_90 = 0, out90Plus = 0
+  pending.forEach(p => {
+    const amt = parseFloat(p.pending_amount) || 0
+    outTotal += amt
+    outCusts.add(p.customer_id || p.cust_mobile)
+    const days = (new Date() - new Date(p.created_at)) / (1000 * 60 * 60 * 24)
+    if (days <= 30) out0_30 += amt
+    else if (days <= 60) out31_60 += amt
+    else if (days <= 90) out61_90 += amt
+    else out90Plus += amt
+  })
+
+  const customers = Array.isArray(data?.customers) ? data.customers : []
+  let ret35Count = 0, ret60Count = 0, ret90Count = 0
+  let atRiskRev = 0
+  customers.forEach(c => {
+    const lastTxnDate = new Date(c.last_txn_date || c.created_at)
+    const days = (new Date() - lastTxnDate) / (1000 * 60 * 60 * 24)
+    if (days >= 35 && days < 60) {
+      ret35Count++
+      atRiskRev += parseFloat(c.total_amount) || 0
+    } else if (days >= 60 && days < 90) {
+      ret60Count++
+      atRiskRev += parseFloat(c.total_amount) || 0
+    } else if (days >= 90) {
+      ret90Count++
+      atRiskRev += parseFloat(c.total_amount) || 0
+    }
+  })
+
+  const dueDates = Array.isArray(data?.dueDates) ? data.dueDates : []
+  let dueToday = 0, due3Days = 0, due7Days = 0
+  let amtToday = 0, amt3Days = 0, amt7Days = 0
+  let potentialTotal = 0
   
-  // Daily Txn Target
-  const pct     = Math.min(100, Math.round((s.txnToday ?? 0) / TARGET * 100))
-  // Monthly Volume Target
-  const monthTarget = targetData?.target_amount || 0
-  const monthAchieved = targetData?.achieved_amount || 0
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  dueDates.forEach(d => {
+    const dueD = new Date(d.bill_due_date)
+    const diffDays = Math.ceil((dueD - todayStart) / (1000 * 60 * 60 * 24))
+    const amt = parseFloat(d.bill_amount) || 0
+    potentialTotal += amt
+
+    if (diffDays === 0) {
+      dueToday++
+      amtToday += amt
+    } else if (diffDays > 0 && diffDays <= 3) {
+      due3Days++
+      amt3Days += amt
+    } else if (diffDays > 3 && diffDays <= 7) {
+      due7Days++
+      amt7Days += amt
+    }
+  })
+
+  const dailyTarget = targetData?.daily?.target || 0
+  const dailyAchieved = targetData?.daily?.achieved || 0
+  const dailyPct = dailyTarget > 0 ? Math.min(100, Math.round((dailyAchieved / dailyTarget) * 100)) : 0
+
+  const weeklyTarget = targetData?.weekly?.target || 0
+  const weeklyAchieved = targetData?.weekly?.achieved || 0
+  const weeklyPct = weeklyTarget > 0 ? Math.min(100, Math.round((weeklyAchieved / weeklyTarget) * 100)) : 0
+
+  const monthTarget = targetData?.monthly?.target || 0
+  const monthAchieved = targetData?.monthly?.achieved || 0
   const monthPct = monthTarget > 0 ? Math.min(100, Math.round((monthAchieved / monthTarget) * 100)) : 0
 
   const now     = new Date()
+
+  // Calculate elapsed shift time
+  let shiftPct = 0;
+  if (att?.check_in && !att?.check_out) {
+    const [hh, mm] = att.check_in.split(':').map(Number);
+    const elapsedMins = (now.getHours() * 60 + now.getMinutes()) - (hh * 60 + mm);
+    if (elapsedMins > 0) {
+      shiftPct = Math.min(100, Math.round((elapsedMins / (9 * 60)) * 100)); // Assuming 9h shift
+    }
+  }
 
   return (
     <div className="ed-page">
@@ -184,60 +287,33 @@ export default function EmployeeDashboard() {
               <h2>Targets Tracker</h2>
             </div>
             <div className="ed-card-body">
-              {/* Monthly Volume Target */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <strong style={{ color: '#402070', fontSize: 14 }}>Monthly Target (Volume)</strong>
-                  <span className="ed-card-badge" style={{ background: monthPct >= 100 ? '#d1fae5' : monthPct >= 60 ? '#fef3c7' : '#fee2e2', color: monthPct >= 100 ? '#059669' : monthPct >= 60 ? '#d97706' : '#dc2626' }}>
-                    {monthPct}%
-                  </span>
-                </div>
-                {monthTarget > 0 ? (
-                  <>
-                    <div className="ed-target-info" style={{ marginBottom: 8 }}>
-                      <span className="ed-target-current">{fmtVal(monthAchieved)}</span>
-                      <span className="ed-target-sep">/</span>
-                      <span className="ed-target-max">{fmtVal(monthTarget)}</span>
-                    </div>
-                    <div className="ed-progress-track">
-                      <div className="ed-progress-fill" style={{
-                        width: `${monthPct}%`,
-                        background: monthPct >= 100 ? 'linear-gradient(90deg,#10b981,#059669)' : monthPct >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
-                      }} />
-                      <div className="ed-progress-glow" style={{ left: `${monthPct}%`, background: monthPct >= 100 ? '#10b981' : monthPct >= 60 ? '#f59e0b' : '#ef4444' }} />
-                    </div>
-                    <div className="ed-target-msg" style={{ marginTop: 8 }}>
-                      {monthPct >= 100 ? '🎉 Monthly Target achieved!' : `Keep pushing to reach your monthly goal!`}
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ fontSize: 13, color: '#888', padding: '12px 0' }}>No target set by branch manager for this month.</div>
-                )}
-              </div>
+              <DonutChart 
+                pct={dailyPct} 
+                title="Daily Target (Volume)"
+                subtitle={dailyTarget > 0 ? `${fmtVal(dailyAchieved)} / ${fmtVal(dailyTarget)}` : "No daily target set."}
+                color={dailyPct >= 100 ? '#10b981' : dailyPct >= 60 ? '#f59e0b' : '#3b82f6'}
+                isZero={dailyTarget === 0}
+              />
 
-              <div className="ed-target-divider" />
+              <div className="ed-target-divider" style={{ margin: '0 0 24px 0' }} />
 
-              {/* Daily Txn Target */}
-              <div style={{ marginTop: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <strong style={{ color: '#0ea5e9', fontSize: 14 }}>Daily Transactions</strong>
-                  <span className="ed-card-badge" style={{ background: pct >= 100 ? '#d1fae5' : pct >= 60 ? '#fef3c7' : '#fee2e2', color: pct >= 100 ? '#059669' : pct >= 60 ? '#d97706' : '#dc2626' }}>
-                    {pct}%
-                  </span>
-                </div>
-                <div className="ed-target-info" style={{ marginBottom: 8 }}>
-                  <span className="ed-target-current" style={{ color: '#0ea5e9' }}>{s.txnToday ?? 0}</span>
-                  <span className="ed-target-sep">/</span>
-                  <span className="ed-target-max">{TARGET} txns</span>
-                </div>
-                <div className="ed-progress-track">
-                  <div className="ed-progress-fill" style={{
-                    width: `${pct}%`,
-                    background: pct >= 100 ? 'linear-gradient(90deg,#10b981,#059669)' : pct >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
-                  }} />
-                  <div className="ed-progress-glow" style={{ left: `${pct}%`, background: pct >= 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444' }} />
-                </div>
-              </div>
+              <DonutChart 
+                pct={weeklyPct} 
+                title="Weekly Target (Volume)"
+                subtitle={weeklyTarget > 0 ? `${fmtVal(weeklyAchieved)} / ${fmtVal(weeklyTarget)}` : "No weekly target set."}
+                color={weeklyPct >= 100 ? '#10b981' : weeklyPct >= 60 ? '#f59e0b' : '#3b82f6'}
+                isZero={weeklyTarget === 0}
+              />
+
+              <div className="ed-target-divider" style={{ margin: '0 0 24px 0' }} />
+
+              <DonutChart 
+                pct={monthPct} 
+                title="Monthly Target (Volume)"
+                subtitle={monthTarget > 0 ? `${fmtVal(monthAchieved)} / ${fmtVal(monthTarget)}` : "No monthly target set."}
+                color={monthPct >= 100 ? '#10b981' : monthPct >= 60 ? '#f59e0b' : '#3b82f6'}
+                isZero={monthTarget === 0}
+              />
             </div>
           </div>
 
@@ -281,6 +357,23 @@ export default function EmployeeDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Active Shift Tracker */}
+              {att?.check_in && !att?.check_out && (
+                <div className="ed-shift-tracker">
+                  <div className="ed-shift-header">
+                    <span>Shift Progress</span>
+                    <span>{shiftPct}% of 5h</span>
+                  </div>
+                  <div className="ed-progress-track">
+                    <div className="ed-progress-fill" style={{ width: `${shiftPct}%`, background: 'linear-gradient(90deg, #3b82f6, #0ea5e9)' }}>
+                      <div className="ed-progress-glow" style={{ background: '#0ea5e9', left: '100%' }} />
+                    </div>
+                  </div>
+                  <p className="ed-shift-tip">💡 Tip: Stay hydrated and take short breaks!</p>
+                </div>
+              )}
+
               {att?.check_in && att?.check_out && att?.minutes > 0 && (
                 <div style={{ background:'#f0fdf4', border:'1px solid #a7f3d0', borderRadius:10, padding:'10px 14px', marginBottom:12, fontSize:13 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -312,6 +405,111 @@ export default function EmployeeDashboard() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── New Bottom Modules ── */}
+        <div className="ed-modules-row">
+          
+          {/* Upcoming Dues */}
+          <div className="ed-module-card">
+            <div className="ed-module-header">
+              <div className="ed-module-title">
+                <span style={{color: '#3b82f6'}}>💳</span> Upcoming Dues
+              </div>
+              <span className="ed-module-link">View All</span>
+            </div>
+            <div className="ed-module-grid">
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">Today</div>
+                <div className="ed-module-box-count">{dueToday}</div>
+                <div className="ed-module-box-amt">₹{fmt(amtToday)}</div>
+              </div>
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">Next 3 Days</div>
+                <div className="ed-module-box-count">{due3Days}</div>
+                <div className="ed-module-box-amt" style={{color: '#d97706'}}>₹{fmt(amt3Days)}</div>
+              </div>
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">Next 7 Days</div>
+                <div className="ed-module-box-count">{due7Days}</div>
+                <div className="ed-module-box-amt" style={{color: '#3b82f6'}}>₹{fmt(amt7Days)}</div>
+              </div>
+            </div>
+            <div className="ed-module-total">
+              <span>Total Potential Collection</span>
+              <strong>₹{fmt(potentialTotal)} ➔</strong>
+            </div>
+          </div>
+
+          {/* Pending Collections */}
+          <div className="ed-module-card">
+            <div className="ed-module-header">
+              <div className="ed-module-title">
+                <span style={{color: '#eab308'}}>💰</span> Pending Collections
+              </div>
+              <span className="ed-module-link">View All</span>
+            </div>
+            <div className="ed-module-col-top">
+              <div className="ed-module-col-item">
+                <div style={{color: '#ef4444'}}>Total Outstanding</div>
+                <strong style={{color: '#ef4444'}}>₹{fmt(outTotal)}</strong>
+              </div>
+              <div className="ed-module-col-item" style={{textAlign: 'right'}}>
+                <div>Total Customers</div>
+                <strong style={{color: '#1a0a2e'}}>{outCusts.size}</strong>
+              </div>
+            </div>
+            <div className="ed-module-col-buckets">
+              <div className="ed-module-col-bucket">
+                <div>0 - 30 Days</div>
+                <strong style={{color: '#10b981'}}>₹{fmt(out0_30)}</strong>
+              </div>
+              <div className="ed-module-col-bucket">
+                <div>31 - 60 Days</div>
+                <strong style={{color: '#d97706'}}>₹{fmt(out31_60)}</strong>
+              </div>
+              <div className="ed-module-col-bucket">
+                <div>61 - 90 Days</div>
+                <strong style={{color: '#ea580c'}}>₹{fmt(out61_90)}</strong>
+              </div>
+              <div className="ed-module-col-bucket">
+                <div>90+ Days</div>
+                <strong style={{color: '#ef4444'}}>₹{fmt(out90Plus)}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Retention */}
+          <div className="ed-module-card">
+            <div className="ed-module-header">
+              <div className="ed-module-title">
+                <span style={{color: '#ef4444'}}>⏰</span> Customer Retention
+              </div>
+              <span className="ed-module-link">View All</span>
+            </div>
+            <div className="ed-module-grid">
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">35 Days Not Visited</div>
+                <div className="ed-module-box-count">{ret35Count}</div>
+                <div className="ed-module-box-amt">High Priority</div>
+              </div>
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">60 Days Not Visited</div>
+                <div className="ed-module-box-count">{ret60Count}</div>
+                <div className="ed-module-box-amt">High Priority</div>
+              </div>
+              <div className="ed-module-box">
+                <div className="ed-module-box-title">90+ Days Not Visited</div>
+                <div className="ed-module-box-count">{ret90Count}</div>
+                <div className="ed-module-box-amt">Critical</div>
+              </div>
+            </div>
+            <div className="ed-module-total" style={{background: '#fff1f2', borderColor: '#ffe4e6'}}>
+              <span style={{color: '#1a0a2e'}}>At Risk Revenue</span>
+              <strong style={{color: '#ef4444'}}>₹{fmt(atRiskRev)}</strong>
+            </div>
+          </div>
+
         </div>
 
         {/* ── Recent Transactions ── */}

@@ -15,6 +15,7 @@ export default function TakeAssignment() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
   const [cheated, setCheated] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   
   const timerRef = useRef(null)
 
@@ -23,6 +24,8 @@ export default function TakeAssignment() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('fullscreenchange', handleFullScreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullScreenChange)
     }
   }, [])
 
@@ -30,6 +33,15 @@ export default function TakeAssignment() {
     if (document.hidden && started && !result && !submitting) {
       setCheated(true)
       submitQuiz(true)
+    }
+  }
+
+  const handleFullScreenChange = () => {
+    // If they exit full screen while the test is running, show a warning
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (started && !result && !submitting) {
+        alert("⚠️ WARNING: You have exited full screen mode! Please remain in full screen until you submit the assignment.")
+      }
     }
   }
 
@@ -62,6 +74,8 @@ export default function TakeAssignment() {
     else if (docElm.webkitRequestFullScreen) docElm.webkitRequestFullScreen()
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('fullscreenchange', handleFullScreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullScreenChange)
     
     setStarted(true)
     timerRef.current = setInterval(() => {
@@ -90,6 +104,8 @@ export default function TakeAssignment() {
     else if (document.webkitExitFullscreen && document.webkitFullscreenElement) document.webkitExitFullscreen()
     
     document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.removeEventListener('fullscreenchange', handleFullScreenChange)
+    document.removeEventListener('webkitfullscreenchange', handleFullScreenChange)
 
     try {
       const token = getTokenByRole('employee')
@@ -123,6 +139,41 @@ export default function TakeAssignment() {
   if (loading) return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading Assignment...</div>
 
   if (result) {
+    const total = result.total_marks || result.total
+    const percentage = Math.round((result.score / total) * 100)
+    
+    let message = ""
+    let messageColor = ""
+    let messageBg = ""
+    let icon = ""
+
+    if (percentage < 50) {
+      message = "Additional training required, please reattempt."
+      messageColor = "#dc2626"
+      messageBg = "#fee2e2"
+      icon = "📚"
+    } else if (percentage < 60) {
+      message = "Needs improvement."
+      messageColor = "#ea580c"
+      messageBg = "#ffedd5"
+      icon = "📈"
+    } else if (percentage < 70) {
+      message = "Good."
+      messageColor = "#eab308"
+      messageBg = "#fef9c3"
+      icon = "👍"
+    } else if (percentage < 80) {
+      message = "Very Good."
+      messageColor = "#0284c7"
+      messageBg = "#e0f2fe"
+      icon = "🌟"
+    } else {
+      message = "Excellent work!"
+      messageColor = "#16a34a"
+      messageBg = "#dcfce7"
+      icon = "🏆"
+    }
+
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
         <div style={{ background: '#fff', padding: 40, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: 400 }}>
@@ -133,12 +184,30 @@ export default function TakeAssignment() {
               ⚠️ Tab switching detected. Your quiz was automatically submitted.
             </div>
           ) : (
-            <div style={{ fontSize: 48, fontWeight: 900, color: result.score === result.total ? '#10b981' : '#402070', margin: '20px 0' }}>
-              {result.score} <span style={{ fontSize: 24, color: '#94a3b8' }}>/ {result.total}</span>
-            </div>
+            <>
+              <div style={{ fontSize: 48, fontWeight: 900, color: percentage >= 80 ? '#10b981' : '#402070', margin: '20px 0' }}>
+                {result.score} <span style={{ fontSize: 24, color: '#94a3b8' }}>/ {total}</span>
+              </div>
+              <div style={{ 
+                background: messageBg, 
+                color: messageColor, 
+                padding: '16px 20px', 
+                borderRadius: 12, 
+                marginBottom: 24, 
+                fontWeight: 700,
+                fontSize: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: `0 4px 12px ${messageColor}20`
+              }}>
+                <span style={{ fontSize: 24 }}>{icon}</span> {message}
+              </div>
+            </>
           )}
           
-          <button onClick={() => navigate('/employee/profile')} style={{ background: '#402070', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+          <button onClick={() => navigate('/employee/profile')} style={{ background: '#402070', color: '#fff', border: 'none', padding: '14px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', width: '100%', fontSize: 16, transition: '0.2s', boxShadow: '0 4px 12px rgba(64,32,112,0.2)' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
             Return to Profile
           </button>
         </div>
@@ -210,11 +279,7 @@ export default function TakeAssignment() {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 40 }}>
           <button 
-            onClick={() => {
-              if (window.confirm('Are you sure you want to submit your answers?')) {
-                submitQuiz()
-              }
-            }} 
+            onClick={() => setShowConfirm(true)} 
             disabled={submitting}
             style={{ background: '#402070', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, boxShadow: '0 4px 14px rgba(64,32,112,0.3)' }}
           >
@@ -222,6 +287,27 @@ export default function TakeAssignment() {
           </button>
         </div>
       </div>
+
+      {showConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', padding: 30, borderRadius: 12, width: '90%', maxWidth: 400, textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 15px', color: '#1e293b', fontSize: 20 }}>Confirm Submission</h3>
+            <p style={{ color: '#475569', marginBottom: 25, fontSize: 15, lineHeight: 1.5 }}>Are you sure you want to submit your answers? You cannot undo this action.</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button 
+                onClick={() => setShowConfirm(false)} 
+                style={{ padding: '12px 20px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, cursor: 'pointer', flex: 1, fontSize: 15 }}>
+                Cancel
+              </button>
+              <button 
+                onClick={() => { setShowConfirm(false); submitQuiz(); }} 
+                style={{ padding: '12px 20px', borderRadius: 8, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, cursor: 'pointer', flex: 1, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', fontSize: 15 }}>
+                Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

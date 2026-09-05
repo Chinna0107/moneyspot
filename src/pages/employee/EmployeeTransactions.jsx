@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { getTokenByRole } from '../../utils/tokenUtils';
 import EmployeeSidebar from '../../components/employee/EmployeeSidebar';
+import { TierBadge } from '../../utils/tierUtils';
 import '../../pages/dashboard.css';
 
 export default function EmployeeTransactions() {
@@ -43,7 +44,13 @@ export default function EmployeeTransactions() {
                   {txns.map(t => (
                     <tr key={t.id}>
                       <td>{new Date(t.created_at).toLocaleString('en-IN')}</td>
-                      <td>{t.cust_name}<br/><small style={{color:'#666'}}>{t.cust_mobile}</small></td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span>{t.cust_name}</span>
+                          <small style={{color:'#666'}}>{t.cust_mobile}</small>
+                          <TierBadge amount={t.customer_total_amount || 0} />
+                        </div>
+                      </td>
                       <td><span className="dash-badge dash-badge-info">{t.service_type}</span></td>
                       <td>{t.platform || '-'}</td>
                       <td>{t.employee_name}</td>

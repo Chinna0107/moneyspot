@@ -6,6 +6,7 @@ import { MdPrint, MdFilterList, MdRefresh, MdFileDownload } from 'react-icons/md
 import PrintReceipt from '../../components/PrintReceipt'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
+import { TierBadge } from '../../utils/tierUtils'
 import '../../pages/dashboard.css'
 
 const fmt    = n => Number(parseFloat(n) || 0).toLocaleString('en-IN')
@@ -243,7 +244,12 @@ export default function AdminTransactions() {
                           <div style={{ color: '#9ca3af' }}>{new Date(t.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
                         <td style={{ fontSize: 12 }}><strong>{t.employee_name || '—'}</strong></td>
-                        <td><strong>{t.cust_name || '—'}</strong></td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                            <strong>{t.cust_name || '—'}</strong>
+                            <TierBadge amount={t.customer_total_amount || 0} />
+                          </div>
+                        </td>
                         <td style={{ fontSize: 11, color: '#64748b' }}>{t.cust_pan || '—'}</td>
                         <td style={{ fontSize: 11 }}>{t.cust_mobile || '—'}</td>
                         <td style={{ fontSize: 12 }}>{t.service_type || '—'}</td>

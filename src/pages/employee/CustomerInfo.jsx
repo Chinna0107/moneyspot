@@ -3,6 +3,11 @@ import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { useMyCustomers } from '../../hooks/useCustomers'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
+import { CustomerBehaviorTags, getActivityStatus } from '../../utils/customerBehaviorUtils'
+import { getCustomerTier } from '../../utils/tierUtils'
+import CustomerHeader from '../../components/shared/CustomerHeader'
+import CustomerFilterPanel from '../../components/shared/CustomerFilterPanel'
+import { useSearchParams } from 'react-router-dom'
 import '../../pages/dashboard.css'
 import './CustomerInfo.css'
 
@@ -20,23 +25,29 @@ export default function CustomerInfo() {
   const { customers, loading, error } = useMyCustomers()
   const [lightbox, setLightbox]         = useState(null)
   const [search, setSearch]             = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterTier = searchParams.get('tier') || ''
+  const filterActivity = searchParams.get('activity') || ''
+  const [panelFilteredCustomers, setPanelFilteredCustomers] = useState([])
+
   const [selected, setSelected]         = useState(null)   // customer object
   const [txns, setTxns]                 = useState([])
   const [txnLoading, setTxnLoading]     = useState(false)
+  const [filterStatus, setFilterStatus] = useState('')
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return customers.filter(c => {
+    return panelFilteredCustomers.filter(c => {
       const matchStatus = !filterStatus || c.status === filterStatus
       const matchSearch = !q ||
         c.name?.toLowerCase().includes(q) ||
         c.phone?.includes(q) ||
         c.pan?.toLowerCase().includes(q) ||
         c.email?.toLowerCase().includes(q)
+      
       return matchStatus && matchSearch
     })
-  }, [customers, search, filterStatus])
+  }, [panelFilteredCustomers, search, filterStatus])
 
   const approved = customers.filter(c => c.status === 'approved').length
   const pending  = customers.filter(c => c.status === 'pending').length
@@ -86,26 +97,34 @@ export default function CustomerInfo() {
           ))}
         </div>
 
-        {/* Table */}
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <h2>All Customers ({filtered.length})</h2>
-            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <div style={{ position:'relative' }}>
-                <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#9ca3af', fontSize:14 }}>🔍</span>
-                <input placeholder="Search name, phone, PAN..." value={search} onChange={e => setSearch(e.target.value)}
-                  style={{ paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, borderRadius:8, border:'1.5px solid #e2e8f0', fontSize:13, fontFamily:'inherit', width:240, outline:'none' }} />
-                {search && <button onClick={() => setSearch('')} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:14 }}>✕</button>}
-              </div>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                style={{ padding:'8px 12px', borderRadius:8, border:'1.5px solid #e2e8f0', fontSize:13, fontFamily:'inherit', color:'#374151' }}>
-                <option value="">All Status</option>
-                <option value="approved">✅ Approved</option>
-                <option value="pending">⏳ Pending</option>
-                <option value="rejected">❌ Rejected</option>
-              </select>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <h2 style={{ fontSize: 18, color: '#1a0a2e' }}>Customer Directory</h2>
+              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{filtered.length} customers</span>
             </div>
-          </div>
+
+            {/* Quick Text Search */}
+            <div style={{ display: 'flex', gap: 10, padding: 16, borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
+                <input
+                  type="text" placeholder="Search by name, phone, PAN, or email..."
+                  value={search} onChange={e => setSearch(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px 10px 36px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            {/* Advanced Filters */}
+            <div style={{ padding: '0 16px', marginTop: 16 }}>
+              <CustomerFilterPanel 
+                customers={customers} 
+                onFilterChange={setPanelFilteredCustomers} 
+                isEmployee={true}
+                initialTier={filterTier}
+                initialActivity={filterActivity}
+              />
+            </div>
           <div className="dash-table-wrap">
             {loading ? <div className="dash-loading">Loading...</div> : filtered.length === 0 ? (
               <div className="dash-empty">{search || filterStatus ? 'No customers match your search.' : 'No customers found.'}</div>
@@ -166,28 +185,26 @@ export default function CustomerInfo() {
             {/* Header */}
             <div style={{ background:'linear-gradient(135deg,#1a0a2e,#402070,#c02040)', padding:'20px 24px', flexShrink:0 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                <div>
-                  <div style={{ color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Customer Profile</div>
-                  <div style={{ color:'#fff', fontWeight:900, fontSize:20, marginTop:2 }}>{selected.name}</div>
-                  <div style={{ color:'rgba(255,255,255,0.6)', fontSize:12, marginTop:2 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:1, marginBottom: 4 }}>Customer Profile</div>
+                  {!txnLoading && <CustomerHeader customer={selected} txns={txns} dark={true} />}
+                  <div style={{ color:'rgba(255,255,255,0.6)', fontSize:12, marginTop:12, marginBottom:4 }}>
                     {selected.phone} · {selected.pan} · {selected.branch || '—'} · {selected.source || '—'}
                   </div>
-                  <span style={statusStyle(selected.status)}>{selected.status}</span>
                 </div>
                 <button onClick={() => setSelected(null)}
                   style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:32, height:32, borderRadius:'50%', cursor:'pointer', fontSize:16, flexShrink:0 }}>✕</button>
               </div>
 
               {/* Stats row */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8, marginTop:16 }}>
                 {[
-                  { label:'Transactions', val: txns.length,    color:'#c4b5fd' },
-                  { label:'Total Amount', val: fmtV(totalAmt), color:'#6ee7b7' },
                   { label:'Total Profit', val: fmtV(totalProfit), color:'#fde68a' },
+                  { label:'Status', val: selected.status.toUpperCase(), color: selected.status === 'approved' ? '#6ee7b7' : '#fca5a5' },
                 ].map(s => (
                   <div key={s.label} style={{ background:'rgba(255,255,255,0.1)', borderRadius:10, padding:'8px 12px', textAlign:'center' }}>
                     <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:0.4 }}>{s.label}</div>
-                    <div style={{ fontSize:16, fontWeight:900, color:s.color, marginTop:2 }}>{txnLoading ? '—' : s.val}</div>
+                    <div style={{ fontSize:14, fontWeight:900, color:s.color, marginTop:2 }}>{txnLoading ? '—' : s.val}</div>
                   </div>
                 ))}
               </div>

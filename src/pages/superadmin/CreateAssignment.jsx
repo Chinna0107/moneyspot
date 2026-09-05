@@ -23,7 +23,7 @@ export default function CreateAssignment() {
   })
 
   const [questions, setQuestions] = useState([
-    { question_text: '', options: ['', '', '', ''], correct_option_index: 0 }
+    { id: null, question_text: '', options: ['', '', '', ''], correct_option_index: 0, marks: 1 }
   ])
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function CreateAssignment() {
   const handleCreateNew = () => {
     setEditingId(null)
     setForm({ title: '', description: '', time_limit_minutes: 10, assigned_to: [], is_active: true })
-    setQuestions([{ question_text: '', options: ['', '', '', ''], correct_option_index: 0 }])
+    setQuestions([{ question_text: '', options: ['', '', '', ''], correct_option_index: 0, marks: 1 }])
     setViewMode('form')
   }
 
@@ -84,9 +84,11 @@ export default function CreateAssignment() {
           is_active: data.is_active
         })
         setQuestions(data.questions.map(q => ({
+          id: q.id,
           question_text: q.question_text,
           options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
-          correct_option_index: q.correct_option_index
+          correct_option_index: q.correct_option_index,
+          marks: q.marks || 1
         })))
         setEditingId(id)
         setViewMode('form')
@@ -115,10 +117,7 @@ export default function CreateAssignment() {
   }
 
   const handleAddQuestion = () => {
-    setQuestions([
-      ...questions, 
-      { question_text: '', options: ['', '', '', ''], correct_option_index: 0 }
-    ])
+    setQuestions([...questions, { id: null, question_text: '', options: ['', '', '', ''], correct_option_index: 0, marks: 1 }])
   }
 
   const handleRemoveQuestion = (index) => {
@@ -315,10 +314,17 @@ export default function CreateAssignment() {
                   <div key={qIndex} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20, position: 'relative' }}>
                     <button type="button" onClick={() => handleRemoveQuestion(qIndex)} style={{ position: 'absolute', top: 15, right: 15, background: '#fee2e2', color: '#dc2626', border: 'none', width: 28, height: 28, borderRadius: 14, cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                     
-                    <div style={{ marginBottom: 15 }}>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Question {qIndex + 1}</label>
-                      <input type="text" required value={q.question_text} onChange={e => handleQuestionChange(qIndex, 'question_text', e.target.value)} 
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: '1px solid #cbd5e1' }} placeholder="Enter the question..." />
+                    <div style={{ display: 'flex', gap: 15, marginBottom: 15 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Question {qIndex + 1}</label>
+                        <input type="text" required value={q.question_text} onChange={e => handleQuestionChange(qIndex, 'question_text', e.target.value)} 
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: '1px solid #cbd5e1' }} placeholder="Enter the question..." />
+                      </div>
+                      <div style={{ width: 120 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Marks</label>
+                        <input type="number" required min={1} value={q.marks} onChange={e => handleQuestionChange(qIndex, 'marks', parseInt(e.target.value))} 
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
+                      </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>

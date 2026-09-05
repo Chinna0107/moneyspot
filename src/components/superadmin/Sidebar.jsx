@@ -4,7 +4,7 @@ import {
   MdDashboard, MdInsights, MdStorefront, MdEmojiEvents,
   MdAccountBalance, MdPeople, MdSettings, MdAssessment, MdSecurity, MdLogout, MdChevronRight,
   MdLock, MdFactCheck, MdGppBad, MdNotificationsNone, MdRedeem, MdReceipt, MdPersonSearch,
-  MdPhotoLibrary, MdWork, MdCalendarToday, MdMoneyOff
+  MdPhotoLibrary, MdWork, MdCalendarToday, MdMoneyOff, MdTrackChanges
 } from 'react-icons/md'
 import { useRoleBasedAuth } from '../../hooks/useRoleBasedAuth'
 import { api } from '../../utils/api'
@@ -28,6 +28,7 @@ const NAV = [
       { to: '/superadmin/branches',     icon: <MdStorefront />,   label: 'Branch Management' },
       { to: '/superadmin/tracking',     icon: <MdEmojiEvents />,  label: 'Performance Tracking' },
       { to: '/superadmin/finance',      icon: <MdAccountBalance />,label: 'Financial Control' },
+      { to: '/superadmin/verifications',icon: <MdFactCheck />,    label: 'Verifications' },
       { to: '/superadmin/employees',    icon: <MdPeople />,       label: 'Employee Management' },
       { to: '/superadmin/attendance',   icon: <MdFactCheck />,    label: 'Attendance' },
       { to: '/superadmin/leads',        icon: <MdAssessment />,   label: 'Lead Management' },
@@ -39,6 +40,7 @@ const NAV = [
     items: [
       { to: '/superadmin/create-assignment',  icon: <MdFactCheck />,    label: 'Create Assignment' },
       { to: '/superadmin/assignment-results', icon: <MdAssessment />,   label: 'Results & Scores' },
+      { to: '/superadmin/assign-targets',     icon: <MdTrackChanges />, label: 'Assign Targets' },
     ],
   },
   {

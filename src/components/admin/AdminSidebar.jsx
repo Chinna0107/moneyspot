@@ -5,7 +5,7 @@ import {
   MdPeople, MdPersonAdd, MdInbox, MdBarChart, MdFactCheck,
   MdReceipt, MdAssessment, MdSecurity, MdSettings, MdLogout, MdPerson,
   MdExpandMore, MdExpandLess, MdWallet, MdBook, MdSwapHoriz,
-  MdMoneyOff, MdHandshake, MdCalendarToday, MdTrendingUp
+  MdMoneyOff, MdHandshake, MdCalendarToday, MdTrendingUp, MdTrackChanges
 } from 'react-icons/md'
 import { useRoleBasedAuth } from '../../hooks/useRoleBasedAuth'
 import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
@@ -45,6 +45,7 @@ const NAV = [
       { to: '/admin/employees',    icon: <MdPeople />,       label: 'Employee Details' },
       { to: '/admin/performance',  icon: <MdBarChart />,     label: 'Performance' },
       { to: '/admin/attendance',   icon: <MdFactCheck />,    label: 'Attendance' },
+      { to: '/admin/assign-targets', icon: <MdTrackChanges />, label: 'Assign Targets' },
       { to: '/admin/create-employee', icon: <MdPersonAdd />, label: 'Create Employee' },
     ]},
   { group: 'Customers',

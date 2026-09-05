@@ -6,6 +6,7 @@ import { MdPrint, MdFilterList, MdRefresh, MdFileDownload } from 'react-icons/md
 import PrintReceipt from '../../components/PrintReceipt'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
+import { TierBadge } from '../../utils/tierUtils'
 import '../dashboard.css'
 import './superadmin.css'
 
@@ -229,7 +230,12 @@ export default function SuperAdminTransactions() {
                         </td>
                         <td><span style={{ background: '#ede9fe', color: '#402070', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{t.branch || '—'}</span></td>
                         <td style={{ fontSize: 12 }}><strong>{t.employee_name || '—'}</strong></td>
-                        <td><strong>{t.cust_name || '—'}</strong></td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                            <strong>{t.cust_name || '—'}</strong>
+                            <TierBadge amount={t.customer_total_amount || 0} />
+                          </div>
+                        </td>
                         <td style={{ fontSize: 11, color: '#64748b' }}>{t.cust_pan || '—'}</td>
                         <td style={{ fontSize: 11 }}>{t.cust_mobile || '—'}</td>
                         <td style={{ fontSize: 12 }}>{t.service_type || '—'}</td>

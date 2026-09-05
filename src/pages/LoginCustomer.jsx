@@ -18,7 +18,8 @@ const particles = [
 ]
 
 export default function LoginCustomer() {
-  const [form, setForm] = useState({ pan: '', phone: '' })
+  const [form, setForm] = useState({ pan: '', phone: '', otp: '' })
+  const [step, setStep] = useState(1)
   const { login, loading, error, setError } = useCustomerLogin()
   const navigate = useNavigate()
 
@@ -35,8 +36,13 @@ export default function LoginCustomer() {
 
   const handleLogin = async e => {
     e.preventDefault()
-    const data = await login({ pan: form.pan, phone: form.phone })
-    if (data?.token) navigate('/customer/dashboard')
+    if (step === 1) {
+      const data = await login({ pan: form.pan, phone: form.phone })
+      if (data?.step === 2) setStep(2)
+    } else {
+      const data = await login({ pan: form.pan, phone: form.phone, otp: form.otp })
+      if (data?.token) navigate('/customer/dashboard')
+    }
   }
 
   return (
@@ -68,19 +74,37 @@ export default function LoginCustomer() {
           {error && <div className="login-alert login-alert-error">{error}</div>}
 
           <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label>PAN Number</label>
-              <input required placeholder="ABCDE1234F" maxLength={10}
-                value={form.pan} onChange={e => { setError(''); setForm({ ...form, pan: e.target.value.toUpperCase() }) }} />
-            </div>
-            <div className="form-group">
-              <label>Mobile Number</label>
-              <input required type="tel" placeholder="10-digit mobile" maxLength={10}
-                value={form.phone} onChange={e => { setError(''); setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }) }} />
-            </div>
-            <button type="submit" className="btn-login-submit" disabled={loading || form.phone.length !== 10}>
-              {loading ? 'Logging in...' : '🔓 Login'}
-            </button>
+            {step === 1 ? (
+              <>
+                <div className="form-group">
+                  <label>PAN Number</label>
+                  <input required placeholder="ABCDE1234F" maxLength={10}
+                    value={form.pan} onChange={e => { setError(''); setForm({ ...form, pan: e.target.value.toUpperCase() }) }} />
+                </div>
+                <div className="form-group">
+                  <label>Mobile Number</label>
+                  <input required type="tel" placeholder="10-digit mobile" maxLength={10}
+                    value={form.phone} onChange={e => { setError(''); setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }) }} />
+                </div>
+                <button type="submit" className="btn-login-submit" disabled={loading || form.phone.length !== 10}>
+                  {loading ? 'Sending OTP...' : '📲 Send OTP'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>Enter OTP sent to {form.phone}</label>
+                  <input required type="text" placeholder="6-digit OTP" maxLength={6}
+                    value={form.otp} onChange={e => { setError(''); setForm({ ...form, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }) }} />
+                </div>
+                <button type="submit" className="btn-login-submit" disabled={loading || form.otp.length < 4}>
+                  {loading ? 'Logging in...' : '🔓 Verify & Login'}
+                </button>
+                <button type="button" onClick={() => { setStep(1); setForm(f => ({ ...f, otp: '' })); setError(''); }} className="btn-login-submit" style={{ background: '#cbd5e1', color: '#334155', marginTop: '10px' }}>
+                  Back
+                </button>
+              </>
+            )}
           </form>
 
           <div className="login-contact-strip" style={{ marginTop: 16 }}>
@@ -88,12 +112,12 @@ export default function LoginCustomer() {
             <a href="tel:+919866440477" className="lcs-btn lcs-call">📞 Call Us</a>
           </div>
 
-          {/* <div style={{ marginTop: 24, textAlign: 'center' }}>
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
             <p className="login-sub" style={{ display: 'inline-block', marginBottom: 0 }}>Don't have an account?</p>
             <button type="button" onClick={() => navigate('/customer/register')} style={{ background: 'none', border: 'none', color: '#402070', fontWeight: 700, fontSize: 14, marginLeft: 8, cursor: 'pointer', textDecoration: 'underline' }}>
               Register Here
             </button>
-          </div> */}
+          </div>
         </div>
       </div>
     </div>

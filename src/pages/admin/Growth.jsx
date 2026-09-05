@@ -26,6 +26,13 @@ export default function AdminGrowth() {
   const [selectedEmp, setSelectedEmp] = useState(null)
   const [targetAmount, setTargetAmount] = useState('')
 
+  // View customers state
+  const [viewCustomersEmp, setViewCustomersEmp] = useState(null)
+  const [viewCustomersMonth, setViewCustomersMonth] = useState(null)
+  const [viewCustomersYear, setViewCustomersYear] = useState(null)
+  const [viewCustomersList, setViewCustomersList] = useState([])
+  const [viewCustomersLoading, setViewCustomersLoading] = useState(false)
+
   const fetchGrowth = () => {
     setLoading(true)
     api(`/dashboard/growth/admin?baseMonth=${bMonth}&baseYear=${bYear}&compareMonth=${cMonth}&compareYear=${cYear}`, {
@@ -67,6 +74,23 @@ export default function AdminGrowth() {
       setSelectedEmp(null)
       setTargetAmount('')
     } catch (e) { alert(e.message) }
+  }
+
+  const handleViewCustomers = async (emp, month, year) => {
+    setViewCustomersEmp(emp)
+    setViewCustomersMonth(month)
+    setViewCustomersYear(year)
+    setViewCustomersLoading(true)
+    try {
+      const data = await api(`/dashboard/growth/admin/customers?employee_id=${emp.user_id}&month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${getTokenByRole('admin')}` }
+      })
+      setViewCustomersList(data)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setViewCustomersLoading(false)
+    }
   }
 
   const calculateGrowth = (current, prev) => {
@@ -155,10 +179,17 @@ export default function AdminGrowth() {
                     const prev = data.reduce((sum, emp) => sum + Number(emp.compare_cust), 0);
                     const growth = calculateGrowth(curr, prev);
                     return (
-                      <div style={{ marginTop: 6 }}>
-                        {growth.type === 'positive' && <span style={{ color: '#059669', fontWeight: 700, fontSize: 13 }}>📈 +{growth.pct}% vs Comp ({prev})</span>}
-                        {growth.type === 'negative' && <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 13 }}>📉 -{growth.pct}% vs Comp ({prev})</span>}
-                        {growth.type === 'neutral'  && <span style={{ color: '#64748b', fontWeight: 700, fontSize: 13 }}>➖ 0% vs Comp ({prev})</span>}
+                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                        <div>
+                          {growth.type === 'positive' && <span style={{ color: '#059669', fontWeight: 700, fontSize: 13 }}>📈 +{growth.pct}% vs Comp ({prev})</span>}
+                          {growth.type === 'negative' && <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 13 }}>📉 -{growth.pct}% vs Comp ({prev})</span>}
+                          {growth.type === 'neutral'  && <span style={{ color: '#64748b', fontWeight: 700, fontSize: 13 }}>➖ 0% vs Comp ({prev})</span>}
+                        </div>
+                        <button 
+                          onClick={() => handleViewCustomers({ user_id: 'all', employee_name: 'Branch' }, bMonth, bYear)}
+                          style={{ background: '#059669', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+                          View All Customers
+                        </button>
                       </div>
                     )
                   })()}
@@ -214,11 +245,16 @@ export default function AdminGrowth() {
                               <span style={{ fontWeight: 700, color: '#402070' }}>{formatCurrency(targets[e.user_id])}</span>
                             ) : <span style={{ color: '#aaa', fontStyle: 'italic' }}>Not Set</span>}
                           </td>
-                          <td>
+                          <td style={{ display: 'flex', gap: '8px' }}>
                             <button 
                               onClick={() => { setSelectedEmp(e); setTargetAmount(targets[e.user_id] || ''); setIsSettingTarget(true); }}
-                              style={{ background: '#402070', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                              style={{ background: '#402070', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
                               Set Target
+                            </button>
+                            <button 
+                              onClick={() => handleViewCustomers(e, bMonth, bYear)}
+                              style={{ background: '#059669', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              View Customers
                             </button>
                           </td>
                         </tr>
@@ -262,6 +298,57 @@ export default function AdminGrowth() {
           </div>
         </div>
       )}
+
+      {viewCustomersEmp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 600, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: '#402070' }}>
+                Customers for {viewCustomersEmp.employee_name} ({MONTHS[viewCustomersMonth - 1]} {viewCustomersYear})
+              </h3>
+              <button onClick={() => setViewCustomersEmp(null)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {viewCustomersLoading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading customers...</div>
+              ) : (
+                <table className="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewCustomersList.length > 0 ? viewCustomersList.map(c => (
+                      <tr key={c.id}>
+                        <td style={{ fontWeight: 600 }}>{c.name}</td>
+                        <td>{c.phone}</td>
+                        <td>
+                          <span style={{ 
+                            padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, 
+                            background: c.status === 'approved' ? '#dcfce7' : c.status === 'pending' ? '#fef9c3' : '#fee2e2',
+                            color: c.status === 'approved' ? '#166534' : c.status === 'pending' ? '#854d0e' : '#991b1b'
+                          }}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 12, color: '#64748b' }}>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20, color: '#64748b' }}>No customers found for this period.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

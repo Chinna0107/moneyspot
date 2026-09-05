@@ -1,20 +1,28 @@
 import { useState } from 'react'
-import { useCustomerProfile } from '../../hooks/useCustomerAuth'
+import { useCustomerProfile, useCustomerTransactions } from '../../hooks/useCustomerAuth'
 import CustomerSidebar from '../../components/customer/CustomerSidebar'
+import CustomerHeader from '../../components/shared/CustomerHeader'
 import { SkeletonCard, SkeletonLine } from '../../components/customer/Skeleton'
 import '../../components/customer/CustomerSidebar.css'
 
 export default function CustomerKYC() {
   const { profile, loading } = useCustomerProfile()
+  const { txns } = useCustomerTransactions()
   const [lightbox, setLightbox] = useState(null)
 
   return (
     <div className="cust-page">
       <CustomerSidebar />
       <div className="cust-content">
-        <div className="cust-topbar">
-          <h1>🪪 KYC & Profile</h1>
-          <p>Your identity documents and account details</p>
+        <div className="cust-topbar" style={{ marginBottom: 20 }}>
+          {profile ? (
+            <CustomerHeader customer={profile} txns={txns} dark={false} />
+          ) : (
+            <>
+              <h1>🪪 KYC & Profile</h1>
+              <p>Your identity documents and account details</p>
+            </>
+          )}
         </div>
 
         {loading ? (

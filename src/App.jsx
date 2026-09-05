@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { Toaster } from 'react-hot-toast'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -35,6 +36,7 @@ import Reports from './pages/superadmin/Reports'
 import Security from './pages/superadmin/Security'
 import SuperAdminCustomers from './pages/superadmin/Customers'
 import SuperadminGrowth from './pages/superadmin/Growth'
+import SuperadminAssignTargets from './pages/superadmin/AssignTargets'
 import FraudList from './pages/superadmin/FraudList'
 import Notifications from './pages/superadmin/Notifications'
 import RedemptionList from './pages/superadmin/RedemptionList'
@@ -45,6 +47,7 @@ import SAGallery from './pages/superadmin/Gallery'
 import SACareers from './pages/superadmin/Careers'
 import CreateAssignment from './pages/superadmin/CreateAssignment'
 import AssignmentResults from './pages/superadmin/AssignmentResults'
+import Verifications from './pages/superadmin/Verifications'
 import Gallery from './pages/Gallery'
 import Careers from './pages/Careers'
 
@@ -65,6 +68,7 @@ import AdminSecurity from './pages/admin/Security'
 import AdminConfig from './pages/admin/Config'
 import FinanceDashboard from './pages/admin/FinanceDashboard'
 import AdminGrowth from './pages/admin/Growth'
+import AdminAssignTargets from './pages/admin/AssignTargets'
 import Wallets from './pages/admin/Wallets'
 import Ledger from './pages/admin/Ledger'
 import CashFlow from './pages/admin/CashFlow'
@@ -94,6 +98,7 @@ import AdminSidebar from './components/admin/AdminSidebar'
 import EmployeeNotifications from './pages/employee/Notifications'
 import AdminNotifications from './pages/admin/Notifications'
 import TakeAssignment from './pages/employee/TakeAssignment'
+import EmployeeAssignmentResult from './pages/employee/EmployeeAssignmentResult'
 
 // Customer Pages
 import CustomerDashboard from './pages/customer/Dashboard'
@@ -135,6 +140,7 @@ function ConditionalLayout({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <ScrollToTop />
       <Routes>
         {/* Public routes with layout */}
@@ -166,12 +172,14 @@ export default function App() {
         <Route path="/superadmin/branches"   element={<SuperAdminRoute><Branches /></SuperAdminRoute>} />
         <Route path="/superadmin/tracking"   element={<SuperAdminRoute><Tracking /></SuperAdminRoute>} />
         <Route path="/superadmin/finance"    element={<SuperAdminRoute><Finance /></SuperAdminRoute>} />
+        <Route path="/superadmin/verifications" element={<SuperAdminRoute><Verifications /></SuperAdminRoute>} />
         <Route path="/superadmin/config"     element={<SuperAdminRoute><Configuration /></SuperAdminRoute>} />
         <Route path="/superadmin/reports"    element={<SuperAdminRoute><Reports /></SuperAdminRoute>} />
         <Route path="/superadmin/customers"  element={<SuperAdminRoute><SuperAdminCustomers /></SuperAdminRoute>} />
         <Route path="/superadmin/customer-reminders" element={<SuperAdminRoute><CustomerReminders role="superadmin" /></SuperAdminRoute>} />
         <Route path="/superadmin/security"   element={<SuperAdminRoute><Security /></SuperAdminRoute>} />
         <Route path="/superadmin/growth"     element={<SuperAdminRoute><SuperadminGrowth /></SuperAdminRoute>} />
+        <Route path="/superadmin/assign-targets" element={<SuperAdminRoute><SuperadminAssignTargets /></SuperAdminRoute>} />
         {/* <Route path="/admin/profile"          element={<AdminRoute><Profile Sidebar={AdminSidebar} isAdmin={true} /></AdminRoute>} /> */}
         <Route path="/superadmin/fraud"         element={<SuperAdminRoute><FraudList /></SuperAdminRoute>} />
         <Route path="/superadmin/notifications"  element={<SuperAdminRoute><Notifications /></SuperAdminRoute>} />
@@ -192,6 +200,7 @@ export default function App() {
         <Route path="/admin/due-dates"       element={<AdminRoute><AdminDueDates /></AdminRoute>} />
         <Route path="/admin/finance"         element={<AdminRoute><FinanceDashboard /></AdminRoute>} />
         <Route path="/admin/growth"          element={<AdminRoute><AdminGrowth /></AdminRoute>} />
+        <Route path="/admin/assign-targets"  element={<AdminRoute><AdminAssignTargets /></AdminRoute>} />
         <Route path="/admin/finance/wallets"     element={<AdminRoute><Wallets /></AdminRoute>} />
         <Route path="/admin/finance/ledger"      element={<AdminRoute><Ledger /></AdminRoute>} />
         <Route path="/admin/finance/cashflow"    element={<AdminRoute><CashFlow /></AdminRoute>} />
@@ -231,6 +240,7 @@ export default function App() {
         <Route path="/employee/branch-expenses" element={<EmployeeRoute><EmployeeExpenses /></EmployeeRoute>} />
         <Route path="/employee/branch-requests" element={<EmployeeRoute><EmployeeRequests /></EmployeeRoute>} />
         <Route path="/employee/branch-attendance" element={<EmployeeRoute><BranchAttendance /></EmployeeRoute>} />
+        <Route path="/employee/assignment-result/:id" element={<EmployeeRoute><EmployeeAssignmentResult /></EmployeeRoute>} />
         <Route path="/admin/profile"          element={<AdminRoute><Profile Sidebar={AdminSidebar} isAdmin={true} /></AdminRoute>} />
         
 

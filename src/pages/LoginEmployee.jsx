@@ -20,8 +20,8 @@ const particles = [
 
 export default function LoginEmployee() {
   const [step, setStep]   = useState(1)
-  const [form, setForm]   = useState({ email: '', password: '', mpin: '' })
-  const { verifyCredentials, verifyMpin, loading, error, success, setError, setSuccess } = useEmployeeLogin()
+  const [form, setForm]   = useState({ email: '', password: '', mpin: '', otp: '' })
+  const { verifyCredentials, verifyMpin, verifyOtp, loading, error, success, setError, setSuccess } = useEmployeeLogin()
   const { saveAuthData } = useRoleBasedAuth()
   const navigate = useNavigate()
 
@@ -45,6 +45,12 @@ export default function LoginEmployee() {
   const handleStep2 = async e => {
     e.preventDefault()
     const data = await verifyMpin({ email: form.email, mpin: form.mpin })
+    if (data?.step === 3) setStep(3)
+  }
+
+  const handleStep3 = async e => {
+    e.preventDefault()
+    const data = await verifyOtp({ email: form.email, otp: form.otp })
     if (data?.token) {
       const u = data.user
       if (u.is_superadmin) {
@@ -90,9 +96,11 @@ export default function LoginEmployee() {
         <h2>Employee / Admin Login</h2>
 
         <div className="login-steps">
-          <span className={`step-dot ${step === 1 ? 'active' : 'done'}`}>1</span>
+          <span className={`step-dot ${step >= 1 ? (step === 1 ? 'active' : 'done') : ''}`}>1</span>
           <span className="step-sep">›</span>
-          <span className={`step-dot ${step === 2 ? 'active' : ''}`}>2</span>
+          <span className={`step-dot ${step >= 2 ? (step === 2 ? 'active' : 'done') : ''}`}>2</span>
+          <span className="step-sep">›</span>
+          <span className={`step-dot ${step === 3 ? 'active' : ''}`}>3</span>
         </div>
 
         {error && (
@@ -123,9 +131,9 @@ export default function LoginEmployee() {
               </button>
             </form>
           </>
-        ) : (
+        ) : step === 2 ? (
           <>
-            <p className="login-sub">Enter your 6-digit MPIN to complete login</p>
+            <p className="login-sub">Enter your 6-digit MPIN to verify identity</p>
             <form onSubmit={handleStep2}>
               <div className="form-group">
                 <label>6-Digit MPIN</label>
@@ -134,9 +142,25 @@ export default function LoginEmployee() {
                   value={form.mpin} onChange={e => setForm({ ...form, mpin: e.target.value.replace(/\D/g, '').slice(0, 6) })} />
               </div>
               <button type="submit" className="btn-login-submit" disabled={loading || form.mpin.length !== 6}>
-                {loading ? 'Logging in...' : '🔓 Login'}
+                {loading ? 'Verifying...' : 'Send OTP →'}
               </button>
               <button type="button" className="btn-back" onClick={() => { setStep(1); setError(''); setSuccess('') }}>← Back</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="login-sub">Enter your 6-digit OTP to complete login</p>
+            <form onSubmit={handleStep3}>
+              <div className="form-group">
+                <label>6-Digit OTP</label>
+                <input required type="password" inputMode="numeric" maxLength={6}
+                  placeholder="••••••" className="mpin-input" autoFocus
+                  value={form.otp} onChange={e => setForm({ ...form, otp: e.target.value.replace(/\D/g, '').slice(0, 6) })} />
+              </div>
+              <button type="submit" className="btn-login-submit" disabled={loading || form.otp.length !== 6}>
+                {loading ? 'Logging in...' : '🔓 Login'}
+              </button>
+              <button type="button" className="btn-back" onClick={() => { setStep(2); setError(''); setSuccess('') }}>← Back</button>
             </form>
           </>
         )}

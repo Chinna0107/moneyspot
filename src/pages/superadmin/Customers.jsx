@@ -5,6 +5,8 @@ import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { useBranches } from '../../hooks/useSuperAdmin'
 import { useSuperAdminCustomers } from '../../hooks/useLeads'
+import CustomerHeader from '../../components/shared/CustomerHeader'
+import CustomerFilterPanel from '../../components/shared/CustomerFilterPanel'
 import '../../pages/employee/CustomerInfo.css'
 import './superadmin.css'
 import './Dashboard.css'
@@ -32,6 +34,7 @@ export default function SuperAdminCustomers() {
   const [tagging, setTagging]     = useState(false)
   const { branches }              = useBranches()
   const { customers, stats, branchStats, loading, load } = useSuperAdminCustomers(branch, status, search)
+  const [panelFilteredCustomers, setPanelFilteredCustomers] = useState([])
 
   const downloadImage = async (url, filename) => {
     try {
@@ -237,14 +240,16 @@ export default function SuperAdminCustomers() {
             </div>
           </div>
 
+          <CustomerFilterPanel customers={customers} onFilterChange={setPanelFilteredCustomers} />
+
           {/* ── Table ── */}
           <div className="sa-card">
             <div className="sa-card-header">
-              <h2>Customers ({customers.length})</h2>
+              <h2>Customers ({panelFilteredCustomers.length})</h2>
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Click row to view full details</span>
             </div>
             <div className="sa-table-wrap">
-              {loading ? <div className="dash-loading">Loading...</div> : customers.length === 0 ? (
+              {loading ? <div className="dash-loading">Loading...</div> : panelFilteredCustomers.length === 0 ? (
                 <div className="sa-empty">No customers found</div>
               ) : (
                 <table className="sa-table">
@@ -252,7 +257,7 @@ export default function SuperAdminCustomers() {
                     <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Source</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
                   </thead>
                   <tbody>
-                    {customers.map(c => {
+                    {panelFilteredCustomers.map(c => {
                       const ss = STATUS_STYLE[c.status] || STATUS_STYLE.pending
                       return (
                         <tr key={c.id} onClick={() => openCustomer(c)} style={{ cursor: 'pointer' }}
@@ -312,11 +317,10 @@ export default function SuperAdminCustomers() {
             style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}>
 
             {/* Header */}
-            <div style={{ background: 'linear-gradient(135deg,#1a0a2e,#402070,#c02040)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <div>
-                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Customer Profile</div>
-                <div style={{ color: '#fff', fontWeight: 900, fontSize: 20, marginTop: 2 }}>{viewCustomer.name}</div>
-                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>🏦 {viewCustomer.branch || '—'} · Added by {viewCustomer.added_by_name}</div>
+            <div style={{ background: 'linear-gradient(135deg,#1a0a2e,#402070,#c02040)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0 }}>
+              <div style={{ flex: 1 }}>
+                <CustomerHeader customer={viewCustomer} txns={viewTxns} dark={true} style={{ marginBottom: 12 }} />
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>🏦 {viewCustomer.branch || '—'} · Added by {viewCustomer.added_by_name}</div>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <a href={`tel:${viewCustomer.phone}`}

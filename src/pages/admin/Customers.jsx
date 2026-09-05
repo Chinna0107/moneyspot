@@ -4,6 +4,8 @@ import { useCustomerRequests } from '../../hooks/useCustomers'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import config from '../../config'
+import CustomerHeader from '../../components/shared/CustomerHeader'
+import CustomerFilterPanel from '../../components/shared/CustomerFilterPanel'
 import '../../pages/dashboard.css'
 import '../employee/CustomerInfo.css'
 
@@ -164,17 +166,9 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg,#1a0a2e,#402070,#c02040)', padding: '20px 24px', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#d4af37' }}>
-                {customer.name?.[0]?.toUpperCase()}
-              </div>
-              <div>
-                <div style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>{customer.name}</div>
-                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 2 }}>{customer.email} · {customer.phone}</div>
-                <span style={{ background: statusBg(customer.status), color: statusColor(customer.status), padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, marginTop: 6, display: 'inline-block' }}>
-                  {customer.status === 'approved' ? '✅ Verified' : customer.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
-                </span>
-              </div>
+            <div style={{ flex: 1 }}>
+              <CustomerHeader customer={customer} txns={[]} dark={true} style={{ marginBottom: 8 }} />
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>{customer.email} · {customer.phone}</div>
             </div>
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
@@ -551,15 +545,14 @@ function CustomerDetailModal({ customer: c, onClose, onUpdate }) {
 export default function AdminCustomers() {
   const { all, loading, error, msg, approve, reject, updateCustomer } = useCustomerRequests()
   const [search,     setSearch]     = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
   const [selected,   setSelected]   = useState(null)
   const [lightbox,   setLightbox]   = useState(null)
+  const [panelFilteredCustomers, setPanelFilteredCustomers] = useState([])
 
-  const filtered = all.filter(c => {
+  const filtered = panelFilteredCustomers.filter(c => {
     const q = search.toLowerCase()
     const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.phone?.includes(q) || c.pan?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
-    const matchStatus = !statusFilter || c.status === statusFilter
-    return matchSearch && matchStatus
+    return matchSearch
   })
 
   const counts = {
@@ -578,14 +571,11 @@ export default function AdminCustomers() {
           <div className="dash-topbar-right">
             <input placeholder="Search name / phone / PAN / email..." value={search} onChange={e => setSearch(e.target.value)}
               style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid rgba(64,32,112,0.2)', fontFamily: 'inherit', fontSize: 13, width: 260 }} />
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '7px 12px', borderRadius: 8, border: '1.5px solid rgba(64,32,112,0.2)', fontFamily: 'inherit', fontSize: 13 }}>
-              <option value="">All Status</option>
-              <option value="approved">✅ Approved</option>
-              <option value="pending">⏳ Pending</option>
-              <option value="rejected">❌ Rejected</option>
-            </select>
           </div>
+        </div>
+
+        <div style={{ padding: '0 20px', marginTop: 10 }}>
+          <CustomerFilterPanel customers={all} onFilterChange={setPanelFilteredCustomers} />
         </div>
 
         <div className="dash-main">

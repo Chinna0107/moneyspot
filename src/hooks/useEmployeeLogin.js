@@ -20,11 +20,21 @@ export function useEmployeeLogin() {
     setLoading(true); setError(''); setSuccess('')
     try {
       const data = await api('/auth/employee/verify-mpin', { method: 'POST', body: JSON.stringify({ email, mpin }) })
+      setSuccess('MPIN verified!')
+      return data
+    } catch (err) { setError(err.message); return null }
+    finally { setLoading(false) }
+  }
+
+  const verifyOtp = async ({ email, otp }) => {
+    setLoading(true); setError(''); setSuccess('')
+    try {
+      const data = await api('/auth/employee/verify-otp', { method: 'POST', body: JSON.stringify({ email, otp }) })
       setSuccess('Login successful!')
       return data
     } catch (err) { setError(err.message); return null }
     finally { setLoading(false) }
   }
 
-  return { verifyCredentials, verifyMpin, loading, error, success, setError, setSuccess }
+  return { verifyCredentials, verifyMpin, verifyOtp, loading, error, success, setError, setSuccess }
 }

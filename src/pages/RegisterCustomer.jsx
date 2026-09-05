@@ -42,6 +42,9 @@ export default function RegisterCustomer() {
       phone: parsed.phone || '',
       email: parsed.email || '',
       branch: parsed.branch || '',
+      account_number: parsed.account_number || '',
+      ifsc_code: parsed.ifsc_code || '',
+      bank_verified_name: parsed.bank_verified_name || '',
       pan_img: null,
       aadhar_img: null,
       card_front_img: null
@@ -58,7 +61,7 @@ export default function RegisterCustomer() {
     sessionStorage.setItem('reg_form', JSON.stringify(formPrimitives))
     
     // Clear storage on success
-    if (step === 6) {
+    if (step === 7) {
       sessionStorage.removeItem('reg_step')
       sessionStorage.removeItem('reg_initTxn')
       sessionStorage.removeItem('reg_mobileOtpSent')
@@ -68,7 +71,7 @@ export default function RegisterCustomer() {
   }, [step, initTransactionId, mobileOtpSent, emailOtpSent, form])
 
   useEffect(() => {
-    if (step === 5 && branches.length === 0) {
+    if (step === 6 && branches.length === 0) {
       const fetchBranches = async () => {
         setLoadingBranches(true)
         try {
@@ -109,15 +112,15 @@ export default function RegisterCustomer() {
         const checkData = await check.json()
         if (checkData.exists) throw new Error('This PAN number is already registered with an existing customer.')
 
-        const res = await fetch('http://localhost:3000/decentro/pan', {
+        const res = await fetch('http://localhost:3000/api/kyc/pan/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pan_number: form.pan, consent: true, consent_purpose: "For onboarding" })
+          body: JSON.stringify({ pan: form.pan })
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'PAN verification failed')
-        if (data.status !== 'SUCCESS') throw new Error('PAN verification failed. Please check your PAN number.')
-        const detectedName = data.kycResult?.name || data.name || 'Detected Name'
+        if (!data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.data?.message || 'PAN verification failed. Please check your PAN number.')
+        const detectedName = data.data?.data?.full_name || 'Detected Name'
         setForm(f => ({ ...f, pan_name: detectedName }))
         setStep(2)
 
@@ -129,27 +132,30 @@ export default function RegisterCustomer() {
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This Aadhar number is already registered.')
 
-          const res = await fetch('http://localhost:3000/decentro/aadhar/initiate', {
+          const res = await fetch('http://localhost:3000/api/kyc/aadhaar/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ aadhaar_number: form.aadhar, name: form.pan_name, consent: true, consent_purpose: "For onboarding" })
+            body: JSON.stringify({ aadhaar_number: form.aadhar })
           })
           const data = await res.json()
-          if (!res.ok) throw new Error(data.error || 'Aadhar OTP initiation failed')
-          if (data.status === 'FAILURE') throw new Error(data.message || 'Aadhar verification failed')
+          if (!res.ok) {
+            const errMsg = (data.error && data.error.message) ? data.error.message : (data.error || 'Aadhar OTP initiation failed');
+            throw new Error(errMsg);
+          }
+          if (!data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.data?.message || 'Aadhar verification failed')
           
-          const txnId = data.data?.init_transaction_id || data.decentroTxnId || `TXN-${Date.now()}`
+          const txnId = data.data?.data?.session_id || `TXN-${Date.now()}`
           setInitTransactionId(txnId)
           setSuccessMsg('✅ Aadhar session created. Since this is testing, please enter any 6-digit OTP to proceed.')
         } else {
           if (!aadharOtp || aadharOtp.length < 4) throw new Error('Please enter the OTP')
-          const res = await fetch('http://localhost:3000/decentro/aadhar/verify', {
+          const res = await fetch('http://localhost:3000/api/kyc/aadhaar/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ init_transaction_id: initTransactionId, otp: aadharOtp, consent: true, consent_purpose: "For onboarding" })
+            body: JSON.stringify({ client_id: initTransactionId, otp: aadharOtp })
           })
           const data = await res.json()
-          if (!res.ok) throw new Error(data.error || 'Aadhar OTP verification failed')
+          if (!res.ok || !data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.error || data.data?.message || 'Aadhar OTP verification failed')
           setStep(3)
         }
 
@@ -161,7 +167,7 @@ export default function RegisterCustomer() {
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This mobile number is already registered.')
 
-          const res = await fetch('http://localhost:3000/decentro/mobile/send-otp', {
+          const res = await fetch('http://localhost:3000/api/otp/mobile/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: form.phone })
@@ -172,7 +178,7 @@ export default function RegisterCustomer() {
           setSuccessMsg('✅ OTP sent to your mobile number. Please enter it below.')
         } else {
           if (!mobileOtp || mobileOtp.length < 4) throw new Error('Please enter the OTP received on your mobile')
-          const res = await fetch('http://localhost:3000/decentro/mobile/verify-otp', {
+          const res = await fetch('http://localhost:3000/api/otp/mobile/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: form.phone, otp: mobileOtp })
@@ -190,7 +196,7 @@ export default function RegisterCustomer() {
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This email address is already registered.')
 
-          const res = await fetch('http://localhost:3000/decentro/email/send-otp', {
+          const res = await fetch('http://localhost:3000/api/otp/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: form.email })
@@ -201,7 +207,7 @@ export default function RegisterCustomer() {
           setSuccessMsg('✅ OTP sent to your email address. Please check your inbox.')
         } else {
           if (!emailOtp || emailOtp.length < 4) throw new Error('Please enter the OTP received on your email')
-          const res = await fetch('http://localhost:3000/decentro/email/verify-otp', {
+          const res = await fetch('http://localhost:3000/api/otp/email/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: form.email, otp: emailOtp })
@@ -210,6 +216,21 @@ export default function RegisterCustomer() {
           if (!res.ok) throw new Error(data.error || 'Email OTP verification failed')
           setStep(5)
         }
+      } else if (step === 5) {
+        if (!form.account_number || !form.ifsc_code) throw new Error('Account Number and IFSC are required')
+        
+        const res = await fetch('http://localhost:3000/api/kyc/bank/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account_number: form.account_number, ifsc_code: form.ifsc_code })
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.error || data.data?.message || 'Bank verification failed')
+        
+        const detectedName = data.data?.data?.account_holder_name || 'Verified Account Holder'
+        setForm(f => ({ ...f, bank_verified_name: detectedName }))
+        setSuccessMsg('✅ Bank account verified successfully.')
+        setStep(6)
       }
     } catch (err) {
       setError(err.message)
@@ -235,6 +256,8 @@ export default function RegisterCustomer() {
       fd.append('branch', form.branch)
       fd.append('referral_name', form.referral_name)
       fd.append('referral_phone', form.referral_phone)
+      fd.append('account_number', form.account_number)
+      fd.append('ifsc_code', form.ifsc_code)
       fd.append('aadhar_img', form.aadhar_img)
       fd.append('pan_img', form.pan_img)
       fd.append('card_front_img', form.card_front_img)
@@ -247,7 +270,7 @@ export default function RegisterCustomer() {
       if (!res.ok) throw new Error(data.error || 'Failed to register')
       
       setSuccessMsg('🎉 Registration complete! Your documents have been submitted to the branch admin for approval.')
-      setStep(6)
+      setStep(7)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -278,11 +301,11 @@ export default function RegisterCustomer() {
           </div>
 
           <h2>Customer Registration</h2>
-          {step <= 5 && <p className="login-sub">Step {step} of 5</p>}
+          {step <= 6 && <p className="login-sub">Step {step} of 6</p>}
 
-          {step <= 5 && (
+          {step <= 6 && (
             <div style={{ display: 'flex', gap: 5, marginBottom: 20 }}>
-              {[1,2,3,4,5].map(s => (
+              {[1,2,3,4,5,6].map(s => (
                 <div key={s} style={{ flex: 1, height: 4, background: s <= step ? '#402070' : '#e2e8f0', borderRadius: 2 }} />
               ))}
             </div>
@@ -291,13 +314,13 @@ export default function RegisterCustomer() {
           {error && <div className="login-alert login-alert-error">{error}</div>}
           {successMsg && <div className="login-alert" style={{ background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{successMsg}</div>}
 
-          <form onSubmit={step === 5 ? handleSubmit : handleNextStep}>
+          <form onSubmit={step === 6 ? handleSubmit : handleNextStep}>
             {step === 1 && (
               <div className="form-group">
                 <label>PAN Number *</label>
                 <input required placeholder="ABCDE1234F" maxLength={10}
                   value={form.pan} onChange={e => { setError(''); setForm({ ...form, pan: e.target.value.toUpperCase() }) }} />
-                <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>We will verify this with Decentro.</p>
+                <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>We will verify this with Idto.</p>
               </div>
             )}
 
@@ -348,10 +371,10 @@ export default function RegisterCustomer() {
                     <button type="button" onClick={async () => {
                       setResending(true); setError(''); setMobileOtp('');
                       try {
-                        const res = await fetch('http://localhost:3000/decentro/mobile/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
+                        const res = await fetch('http://localhost:3000/api/otp/mobile/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error)
-                        setSuccessMsg('✅ New OTP sent! Check server console.')
+                        setSuccessMsg('✅ New OTP sent! Please check your phone.')
                       } catch(e) { setError(e.message) } finally { setResending(false) }
                     }} style={{ marginTop: 8, background: 'none', border: 'none', color: '#402070', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
                       {resending ? 'Sending...' : '🔄 Resend OTP'}
@@ -380,7 +403,7 @@ export default function RegisterCustomer() {
                     <button type="button" onClick={async () => {
                       setResending(true); setError(''); setEmailOtp('');
                       try {
-                        const res = await fetch('http://localhost:3000/decentro/email/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) })
+                        const res = await fetch('http://localhost:3000/api/otp/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) })
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error)
                         setSuccessMsg('✅ New OTP sent to your email!')
@@ -395,6 +418,25 @@ export default function RegisterCustomer() {
             )}
 
             {step === 5 && (
+              <div className="form-group">
+                {form.bank_verified_name && (
+                  <div style={{ marginBottom: 15, background: '#f8fafc', padding: '10px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Verified Name (from Bank)</div>
+                    <div style={{ fontSize: 14, color: '#0f172a', fontWeight: 600 }}>{form.bank_verified_name}</div>
+                  </div>
+                )}
+                
+                <label>Account Number *</label>
+                <input required type="text" placeholder="Enter Account Number" disabled={!!form.bank_verified_name}
+                  value={form.account_number} onChange={e => { setError(''); setForm({ ...form, account_number: e.target.value.replace(/\\D/g, '') }) }} style={{ marginBottom: 15 }} />
+
+                <label>IFSC Code *</label>
+                <input required type="text" placeholder="Enter IFSC Code" disabled={!!form.bank_verified_name}
+                  value={form.ifsc_code} onChange={e => { setError(''); setForm({ ...form, ifsc_code: e.target.value.toUpperCase() }) }} />
+              </div>
+            )}
+
+            {step === 6 && (
               <div className="form-group">
                 <label>Select Branch *</label>
                 <select required value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 15 }}>
@@ -422,7 +464,7 @@ export default function RegisterCustomer() {
               </div>
             )}
 
-            {step === 6 && (
+            {step === 7 && (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
                 <h3 style={{ color: '#402070', marginBottom: 10 }}>Application Submitted</h3>
@@ -433,7 +475,7 @@ export default function RegisterCustomer() {
               </div>
             )}
 
-            {step < 6 && (
+            {step < 7 && (
               <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
                 {step > 1 && (
                   <button type="button" onClick={() => { setError(''); setStep(s => s - 1) }} 
@@ -443,20 +485,21 @@ export default function RegisterCustomer() {
                 )}
                 <button type="submit" className="btn-login-submit" style={{ flex: 2 }} disabled={loading}>
                   {loading ? 'Processing...' 
-                    : step === 5 ? 'Submit Registration'
+                    : step === 6 ? 'Submit Registration'
                     : (step === 2 && !initTransactionId) ? '📤 Send Aadhar OTP'
                     : (step === 2 && initTransactionId) ? '✅ Verify Aadhar OTP'
                     : (step === 3 && !mobileOtpSent) ? '📤 Send Mobile OTP'
                     : (step === 3 && mobileOtpSent) ? '✅ Verify Mobile OTP'
                     : (step === 4 && !emailOtpSent) ? '📤 Send Email OTP'
                     : (step === 4 && emailOtpSent) ? '✅ Verify Email OTP'
+                    : (step === 5 && !form.bank_verified_name) ? 'Verify Bank ➔'
                     : 'Verify & Next ➔'}
                 </button>
               </div>
             )}
           </form>
 
-          {step === 6 && (
+          {step === 7 && (
             <div style={{ marginTop: 24, textAlign: 'center' }}>
               <button type="button" onClick={() => navigate('/login/customer')} className="btn-primary" style={{ width: '100%' }}>
                 Return to Login
@@ -464,7 +507,7 @@ export default function RegisterCustomer() {
             </div>
           )}
 
-          {step < 6 && (
+          {step < 7 && (
             <div style={{ marginTop: 24, textAlign: 'center' }}>
               <button type="button" onClick={() => navigate('/login/customer')} style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
                 Cancel & Return to Login

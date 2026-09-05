@@ -25,10 +25,13 @@ export function useCustomerLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
 
-  const login = async ({ pan, phone }) => {
+  const login = async ({ pan, phone, otp }) => {
     setLoading(true); setError('')
     try {
-      const data = await api('/customer/login', { method: 'POST', body: JSON.stringify({ pan, phone }) })
+      const data = await api('/customer/login', { method: 'POST', body: JSON.stringify({ pan, phone, otp }) })
+      if (data.step === 2) {
+        return data // OTP sent successfully, move to step 2
+      }
       localStorage.setItem(KEY, JSON.stringify({ ...data, timestamp: new Date().toISOString() }))
       cache.profile = null; cache.txns = null
       cache.profileTs = 0;  cache.txnsTs = 0

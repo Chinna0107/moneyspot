@@ -2,6 +2,9 @@ import React, { useState, useCallback, useRef } from 'react'
 import Sidebar from '../../components/superadmin/Sidebar'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
+import { CustomerBehaviorTags, getActivityStatus } from '../../utils/customerBehaviorUtils'
+import { getCustomerTier, TierBadge } from '../../utils/tierUtils'
+import CustomerHeader from '../../components/shared/CustomerHeader'
 import '../dashboard.css'
 import './superadmin.css'
 
@@ -133,6 +136,7 @@ export default function SACustomerInfo() {
                         <th>Source</th>
                         <th>Transactions</th>
                         <th>Total Value</th>
+                        <th>Tier</th>
                         <th>Coins</th>
                         <th>Status</th>
                         <th>Member Since</th>
@@ -154,6 +158,7 @@ export default function SACustomerInfo() {
                           <td style={{ fontSize: 12 }}>{c.source || '—'}</td>
                           <td style={{ fontWeight: 700, color: '#374151' }}>{fmt(c.txn_count || 0)}</td>
                           <td style={{ color: '#059669', fontWeight: 700 }}>{fmtV(c.total_amount || 0)}</td>
+                          <td><TierBadge amount={c.total_amount || 0} /></td>
                           <td style={{ color: '#d4af37', fontWeight: 700 }}>🪙 {fmt(c.coins || 0)}</td>
                           <td><Badge status={c.status} /></td>
                           <td style={{ fontSize: 12, color: '#9ca3af' }}>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
@@ -193,21 +198,10 @@ export default function SACustomerInfo() {
             {/* Panel Header */}
             <div style={{ background: 'linear-gradient(135deg,#1a0a2e,#402070,#c02040)', padding: '22px 24px', flexShrink: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#d4af37', flexShrink: 0 }}>
-                    {selected.name?.[0]?.toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>{selected.name}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>
-                      {selected.phone} · <span style={{ fontFamily: 'monospace' }}>{selected.pan}</span> · {selected.source || '—'}
-                    </div>
-                    <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <Badge status={selected.status} />
-                      <span style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
-                        📍 {selected.branch || '—'}
-                      </span>
-                    </div>
+                <div style={{ flex: 1 }}>
+                  {!txnLoading && <CustomerHeader customer={selected} txns={txns} dark={true} />}
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 12 }}>
+                    {selected.phone} · <span style={{ fontFamily: 'monospace' }}>{selected.pan}</span> · {selected.source || '—'} · 📍 {selected.branch || '—'}
                   </div>
                 </div>
                 <button onClick={() => setSelected(null)}
@@ -215,10 +209,8 @@ export default function SACustomerInfo() {
               </div>
 
               {/* Stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                 {[
-                  { label: 'Transactions', val: txnLoading ? '—' : fmt(txns.length),    color: '#c4b5fd' },
-                  { label: 'Total Value',  val: txnLoading ? '—' : fmtV(totalAmt),      color: '#6ee7b7' },
                   { label: 'Total Profit', val: txnLoading ? '—' : fmtV(totalProfit),   color: '#fde68a' },
                   { label: 'Coins',        val: `🪙 ${fmt(selected.coins || 0)}`,        color: '#fcd34d' },
                 ].map(s => (

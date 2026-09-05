@@ -22,6 +22,13 @@ export default function SuperadminGrowth() {
   const [cMonth, setCMonth] = useState(String(defaultPrevMonth).padStart(2, '0'))
   const [cYear, setCYear]   = useState(String(defaultPrevYear))
 
+  // View customers state
+  const [viewCustomersEmp, setViewCustomersEmp] = useState(null)
+  const [viewCustomersMonth, setViewCustomersMonth] = useState(null)
+  const [viewCustomersYear, setViewCustomersYear] = useState(null)
+  const [viewCustomersList, setViewCustomersList] = useState([])
+  const [viewCustomersLoading, setViewCustomersLoading] = useState(false)
+
   useEffect(() => {
     setLoading(true)
     api(`/dashboard/growth/superadmin?baseMonth=${bMonth}&baseYear=${bYear}&compareMonth=${cMonth}&compareYear=${cYear}`, {
@@ -35,6 +42,23 @@ export default function SuperadminGrowth() {
       .catch(e => setError(e.message || 'Failed to load growth data'))
       .finally(() => setLoading(false))
   }, [bMonth, bYear, cMonth, cYear])
+
+  const handleViewCustomers = async (emp, month, year) => {
+    setViewCustomersEmp(emp)
+    setViewCustomersMonth(month)
+    setViewCustomersYear(year)
+    setViewCustomersLoading(true)
+    try {
+      const data = await api(`/dashboard/growth/superadmin/customers?employee_id=${emp.user_id}&month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${getTokenByRole('superadmin')}` }
+      })
+      setViewCustomersList(data)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setViewCustomersLoading(false)
+    }
+  }
 
   const calculateGrowth = (current, prev) => {
     const curVal = Number(current)
@@ -87,8 +111,13 @@ export default function SuperadminGrowth() {
 
           {/* Branches Table */}
           <div className="sa-card" style={{ marginBottom: 24 }}>
-            <div className="sa-card-header">
+            <div className="sa-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2>Branch Comparison</h2>
+              <button 
+                onClick={() => handleViewCustomers({ user_id: 'all', employee_name: 'All Branches' }, bMonth, bYear)}
+                style={{ background: '#059669', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                View All System Customers
+              </button>
             </div>
             
             <div className="sa-table-wrap">
@@ -154,6 +183,7 @@ export default function SuperadminGrowth() {
                       <th>Cust (Compare)</th>
                       <th>Cust (Base)</th>
                       <th>Cust Growth</th>
+                      <th style={{ width: 100 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -178,9 +208,16 @@ export default function SuperadminGrowth() {
                             {cGrowth.type === 'negative' && <span style={{ color: '#dc2626', fontWeight: 600, background: '#fee2e2', padding: '4px 10px', borderRadius: 20, fontSize: 12 }}>📉 -{cGrowth.pct}%</span>}
                             {cGrowth.type === 'neutral'  && <span style={{ color: '#64748b', fontWeight: 600, background: '#f1f5f9', padding: '4px 10px', borderRadius: 20, fontSize: 12 }}>➖ 0%</span>}
                           </td>
+                          <td>
+                            <button 
+                              onClick={() => handleViewCustomers(e, bMonth, bYear)}
+                              style={{ background: '#059669', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              View Customers
+                            </button>
+                          </td>
                         </tr>
                       )
-                    }) : <tr><td colSpan={8} className="sa-empty">No employee data available</td></tr>}
+                    }) : <tr><td colSpan={9} className="sa-empty">No employee data available</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -188,6 +225,57 @@ export default function SuperadminGrowth() {
           </div>
         </div>
       </div>
+
+      {viewCustomersEmp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 600, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: '#402070' }}>
+                Customers for {viewCustomersEmp.employee_name} ({MONTHS[viewCustomersMonth - 1]} {viewCustomersYear})
+              </h3>
+              <button onClick={() => setViewCustomersEmp(null)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {viewCustomersLoading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading customers...</div>
+              ) : (
+                <table className="sa-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewCustomersList.length > 0 ? viewCustomersList.map(c => (
+                      <tr key={c.id}>
+                        <td style={{ fontWeight: 600 }}>{c.name}</td>
+                        <td>{c.phone}</td>
+                        <td>
+                          <span style={{ 
+                            padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, 
+                            background: c.status === 'approved' ? '#dcfce7' : c.status === 'pending' ? '#fef9c3' : '#fee2e2',
+                            color: c.status === 'approved' ? '#166534' : c.status === 'pending' ? '#854d0e' : '#991b1b'
+                          }}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 12, color: '#64748b' }}>{new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20, color: '#64748b' }}>No customers found for this period.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

@@ -14,22 +14,33 @@ const fmt = n => Number(parseInt(n) || 0).toLocaleString('en-IN')
 const COINS_PER_RUPEE = 10 // 10 coins = ₹1
 
 function ChangePasswordModal({ onClose, role = 'employee' }) {
-  const [form, setForm]     = useState({ current_password: '', new_password: '', confirm_password: '' })
+  const [step, setStep]     = useState(1)
+  const [form, setForm]     = useState({ current_password: '', new_password: '', confirm_password: '', otp: '' })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg]       = useState('')
   const [error, setError]   = useState('')
 
   const handleSubmit = async e => {
     e.preventDefault()
-    if (form.new_password !== form.confirm_password) { setError('Passwords do not match'); return }
+    if (step === 1 && form.new_password !== form.confirm_password) { setError('Passwords do not match'); return }
     setSaving(true); setMsg(''); setError('')
     try {
+      const payload = step === 1 
+        ? { current_password: form.current_password, new_password: form.new_password }
+        : { current_password: form.current_password, new_password: form.new_password, otp: form.otp }
+
       const r = await api('/auth/change-password', {
         method: 'PATCH', headers: authHeader(role),
-        body: JSON.stringify({ current_password: form.current_password, new_password: form.new_password }),
+        body: JSON.stringify(payload),
       })
-      setMsg(r.message)
-      setForm({ current_password: '', new_password: '', confirm_password: '' })
+      
+      if (r.step === 2) {
+        setStep(2)
+        setMsg(r.message)
+      } else {
+        setMsg(r.message)
+        setTimeout(() => onClose(), 2000) // auto close after success
+      }
     } catch (err) { setError(err.message) }
     setSaving(false)
   }
@@ -50,29 +61,36 @@ function ChangePasswordModal({ onClose, role = 'employee' }) {
           {error && <div className="profile-alert error">❌ {error}</div>}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {[
-              { key: 'current_password', label: 'Current Password',     icon: '🔑' },
-              { key: 'new_password',      label: 'New Password',         icon: '🔒' },
-              { key: 'confirm_password',  label: 'Confirm New Password', icon: '✅' },
-            ].map(({ key, label, icon }) => (
-              <div className="profile-input-group" key={key} style={{ marginBottom: 0 }}>
-                <label className="profile-input-label">{icon} {label}</label>
-                <input required type="password" placeholder="••••••••"
+            {step === 1 ? (
+              <>
+                {[
+                  { key: 'current_password', label: 'Current Password',     icon: '🔑' },
+                  { key: 'new_password',      label: 'New Password',         icon: '🔒' },
+                  { key: 'confirm_password',  label: 'Confirm New Password', icon: '✅' },
+                ].map(({ key, label, icon }) => (
+                  <div className="profile-input-group" key={key} style={{ marginBottom: 0 }}>
+                    <label className="profile-input-label">{icon} {label}</label>
+                    <input required type="password" placeholder="••••••••"
+                      className="profile-input"
+                      value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} />
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                <label className="profile-input-label">📱 6-Digit OTP</label>
+                <input required type="password" inputMode="numeric" maxLength={6} placeholder="••••••" autoFocus
                   className="profile-input"
-                  value={form[key]}
-                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                />
+                  value={form.otp} onChange={e => setForm({ ...form, otp: e.target.value.replace(/\D/g, '').slice(0, 6) })} />
               </div>
-            ))}
+            )}
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-              <button type="button" onClick={onClose}
-                className="profile-quick-btn" style={{ flex: 1, padding: '12px', fontSize: 14 }}>
-                Cancel
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              <button type="button" className="profile-quick-btn" style={{ flex: 1, padding: '12px', fontSize: 14 }} onClick={() => step === 2 ? setStep(1) : onClose()}>
+                {step === 2 ? 'Back' : 'Cancel'}
               </button>
-              <button type="submit" disabled={saving}
-                className="profile-redeem-btn" style={{ flex: 2, padding: '12px' }}>
-                {saving ? 'Saving...' : '🔒 Update Password'}
+              <button type="submit" className="profile-redeem-btn" style={{ flex: 2, padding: '12px' }} disabled={saving || (step === 2 && form.otp.length !== 6)}>
+                {saving ? (step === 1 ? 'Sending...' : 'Verifying...') : (step === 1 ? 'Send OTP' : '🔒 Update Password')}
               </button>
             </div>
           </form>
@@ -95,6 +113,7 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const [showCoins, setShowCoins]     = useState(false)
   
   const [pendingAssignments, setPendingAssignments] = useState([])
+  const [completedAssignments, setCompletedAssignments] = useState([])
   const navigate = useNavigate()
 
   const role = isAdmin ? 'admin' : 'employee'
@@ -114,6 +133,10 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const fetchAssignments = () => {
     api('/assignments/pending', { headers: authHeader(role) })
       .then(d => setPendingAssignments(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      
+    api('/assignments/completed', { headers: authHeader(role) })
+      .then(d => setCompletedAssignments(Array.isArray(d) ? d : []))
       .catch(() => {})
   }
 
@@ -230,17 +253,50 @@ export default function Profile({ Sidebar, isAdmin = false }) {
                 <div className="profile-section-title">📋 Pending Assignments</div>
                 <div className="profile-assignments-grid">
                   {pendingAssignments.map(a => (
-                    <div key={a.id} className="profile-assignment-card">
+                    <div key={a.id} className="profile-assignment-card" style={{ background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
                       <div>
-                        <h4 className="profile-assignment-title">{a.title}</h4>
-                        {a.description && <p className="profile-assignment-desc">{a.description}</p>}
-                        <div className="profile-assignment-meta">
-                          <span>⏱️ {a.time_limit_minutes} Mins</span>
-                          <span>📝 {a.total_questions} Questions</span>
+                        <h4 className="profile-assignment-title" style={{ fontSize: '18px', color: '#1e293b', fontWeight: 800, marginBottom: '8px' }}>{a.title}</h4>
+                        {a.description && <p className="profile-assignment-desc" style={{ color: '#475569', fontSize: '14px', marginBottom: '12px' }}>{a.description}</p>}
+                        <div className="profile-assignment-meta" style={{ display: 'flex', gap: '12px', color: '#64748b', fontSize: '13px' }}>
+                          <span style={{ background: '#f1f5f9', padding: '4px 10px', borderRadius: '12px' }}>⏱️ {a.time_limit_minutes} Mins</span>
+                          <span style={{ background: '#f1f5f9', padding: '4px 10px', borderRadius: '12px' }}>📝 {a.total_questions} Qs</span>
                         </div>
                       </div>
-                      <button onClick={() => navigate(`/employee/take-assignment/${a.id}`)} className="profile-assignment-btn">
+                      <button onClick={() => navigate(`/employee/take-assignment/${a.id}`)} className="profile-assignment-btn" style={{ background: '#10b981', color: 'white', fontWeight: 700, marginTop: '16px' }}>
                         🚀 Start Assignment
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {completedAssignments.length > 0 && (
+              <div className="profile-assignments-wrap" style={{ marginTop: 24 }}>
+                <div className="profile-section-title">✅ Completed Assignments</div>
+                <div className="profile-assignments-grid">
+                  {completedAssignments.map(a => (
+                    <div key={a.assignment_id} className="profile-assignment-card" style={{ background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                      <div>
+                        <h4 className="profile-assignment-title" style={{ fontSize: '18px', color: '#1e293b', fontWeight: 800, marginBottom: '8px' }}>{a.title}</h4>
+                        <div className="profile-assignment-meta" style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', color: '#64748b' }}>📅 {new Date(a.submitted_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          <span style={{ 
+                            background: a.score >= ((a.total_marks || a.total_questions) * 0.8) ? '#dcfce7' : '#fef3c7', 
+                            color: a.score >= ((a.total_marks || a.total_questions) * 0.8) ? '#166534' : '#92400e', 
+                            fontWeight: 'bold', 
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            display: 'inline-block',
+                            width: 'fit-content',
+                            fontSize: '13px'
+                          }}>
+                            🏆 Score: {a.score}/{a.total_marks || a.total_questions}
+                          </span>
+                        </div>
+                      </div>
+                      <button onClick={() => navigate(`/employee/assignment-result/${a.assignment_id}`)} className="profile-assignment-btn" style={{ background: '#402070', color: 'white', fontWeight: 600, marginTop: '16px' }}>
+                        👀 View Details
                       </button>
                     </div>
                   ))}

@@ -20,9 +20,9 @@ const particles = [
 
 export default function LoginSuperAdmin() {
   const [step, setStep]   = useState(1)
-  const [form, setForm]   = useState({ email: '', password: '', mpin: '' })
+  const [form, setForm]   = useState({ email: '', password: '', mpin: '', otp: '' })
   const [reg, setReg]     = useState({ name: '', email: '', password: '', mpin: '', secretKey: '' })
-  const { verifyCredentials, verifyMpin, register, loading, error, success, setError, setSuccess } = useSuperAdminAuth()
+  const { verifyCredentials, verifyMpin, verifyOtp, register, loading, error, success, setError, setSuccess } = useSuperAdminAuth()
   const { saveAuthData } = useRoleBasedAuth()
   const navigate = useNavigate()
 
@@ -48,6 +48,12 @@ export default function LoginSuperAdmin() {
   const handleStep2 = async e => {
     e.preventDefault()
     const data = await verifyMpin({ email: form.email, mpin: form.mpin })
+    if (data?.step === 3) setStep(3)
+  }
+
+  const handleStep3 = async e => {
+    e.preventDefault()
+    const data = await verifyOtp({ email: form.email, otp: form.otp })
     if (data?.token) {
       saveAuthData(data.token, data.user, 'superadmin')
       navigate('/superadmin/dashboard')
@@ -112,9 +118,11 @@ export default function LoginSuperAdmin() {
         ) : (
           <>
             <div className="login-steps">
-              <span className={`step-dot ${step === 1 ? 'active' : 'done'}`}>1</span>
+              <span className={`step-dot ${step >= 1 ? (step === 1 ? 'active' : 'done') : ''}`}>1</span>
               <span className="step-sep">›</span>
-              <span className={`step-dot ${step === 2 ? 'active' : ''}`}>2</span>
+              <span className={`step-dot ${step >= 2 ? (step === 2 ? 'active' : 'done') : ''}`}>2</span>
+              <span className="step-sep">›</span>
+              <span className={`step-dot ${step === 3 ? 'active' : ''}`}>3</span>
             </div>
 
             {error && <div className="login-alert login-alert-error">{error}</div>}
@@ -129,13 +137,22 @@ export default function LoginSuperAdmin() {
                   <button type="submit" className="btn-login-submit superadmin-btn" disabled={loading}>{loading ? 'Verifying...' : 'Continue →'}</button>
                 </form>
               </>
-            ) : (
+            ) : step === 2 ? (
               <>
-                <p className="login-sub">Enter your 6-digit MPIN to complete login</p>
+                <p className="login-sub">Enter your 6-digit MPIN to verify identity</p>
                 <form onSubmit={handleStep2}>
                   <div className="form-group"><label>6-Digit MPIN</label><input required type="password" inputMode="numeric" maxLength={6} placeholder="••••••" className="mpin-input" autoFocus value={form.mpin} onChange={e => setForm({ ...form, mpin: e.target.value.replace(/\D/g, '').slice(0, 6) })} /></div>
-                  <button type="submit" className="btn-login-submit superadmin-btn" disabled={loading || form.mpin.length !== 6}>{loading ? 'Logging in...' : '🔓 Login'}</button>
+                  <button type="submit" className="btn-login-submit superadmin-btn" disabled={loading || form.mpin.length !== 6}>{loading ? 'Verifying...' : 'Send OTP →'}</button>
                   <button type="button" className="btn-back" onClick={() => { setStep(1); setError(''); setSuccess('') }}>← Back</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <p className="login-sub">Enter your 6-digit OTP to complete login</p>
+                <form onSubmit={handleStep3}>
+                  <div className="form-group"><label>6-Digit OTP</label><input required type="password" inputMode="numeric" maxLength={6} placeholder="••••••" className="mpin-input" autoFocus value={form.otp} onChange={e => setForm({ ...form, otp: e.target.value.replace(/\D/g, '').slice(0, 6) })} /></div>
+                  <button type="submit" className="btn-login-submit superadmin-btn" disabled={loading || form.otp.length !== 6}>{loading ? 'Logging in...' : '🔓 Login'}</button>
+                  <button type="button" className="btn-back" onClick={() => { setStep(2); setError(''); setSuccess('') }}>← Back</button>
                 </form>
               </>
             )}

@@ -1,6 +1,7 @@
 import { useCustomerProfile, useCustomerTransactions, useCustomerCoins, getCustomerUser } from '../../hooks/useCustomerAuth'
 import CustomerSidebar from '../../components/customer/CustomerSidebar'
 import { SkeletonStat, SkeletonCard, SkeletonTable } from '../../components/customer/Skeleton'
+import CustomerHeader from '../../components/shared/CustomerHeader'
 import '../../components/customer/CustomerSidebar.css'
 import './CustomerDashboard.css'
 
@@ -30,17 +31,17 @@ export default function CustomerDashboard() {
           <div className="cd-hero-orb cd-orb1" />
           <div className="cd-hero-orb cd-orb2" />
           <div className="cd-hero-inner">
-            <div>
-              <div className="cd-greeting">{greeting} 👋</div>
-              <h1 className="cd-hero-name">{user?.name || 'Customer'}</h1>
+            <div style={{ flex: 1 }}>
+              <div className="cd-greeting" style={{ marginBottom: 12 }}>{greeting} 👋</div>
+              {profile ? (
+                <CustomerHeader customer={profile} txns={txns} dark={true} style={{ marginBottom: 12 }} />
+              ) : (
+                <h1 className="cd-hero-name">{user?.name || 'Customer'}</h1>
+              )}
               <div className="cd-hero-meta">
                 {now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}
-                {profile?.branch && <span className="cd-branch-pill">🏦 {profile.branch}</span>}
+                {profile?.branch && <span className="cd-branch-pill" style={{ marginLeft: 8 }}>🏦 {profile.branch}</span>}
               </div>
-            </div>
-            <div className="cd-kyc-badge">
-              <span className="cd-kyc-dot" />
-              KYC Verified
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import config from '../config';
 import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
 import logoImg from '../assets/icons png/MS Logo.png'
@@ -75,7 +76,7 @@ export default function RegisterCustomer() {
       const fetchBranches = async () => {
         setLoadingBranches(true)
         try {
-          const res = await fetch('http://localhost:3000/customers/public-branches')
+          const res = await fetch(`${config.API_URL}/customers/public-branches`)
           if (res.ok) {
             const data = await res.json()
             setBranches(data)
@@ -108,11 +109,11 @@ export default function RegisterCustomer() {
       if (step === 1) {
         if (form.pan.length !== 10) throw new Error('Invalid PAN format')
         
-        const check = await fetch(`http://localhost:3000/customers/check-exists?type=pan&value=${form.pan}`)
+        const check = await fetch(`${config.API_URL}/customers/check-exists?type=pan&value=${form.pan}`)
         const checkData = await check.json()
         if (checkData.exists) throw new Error('This PAN number is already registered with an existing customer.')
 
-        const res = await fetch('http://localhost:3000/api/kyc/pan/verify', {
+        const res = await fetch(`${config.API_URL}/api/kyc/pan/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pan: form.pan })
@@ -128,11 +129,11 @@ export default function RegisterCustomer() {
         if (form.aadhar.length !== 12) throw new Error('Invalid Aadhar — must be 12 digits')
 
         if (!initTransactionId) {
-          const check = await fetch(`http://localhost:3000/customers/check-exists?type=aadhar&value=${form.aadhar}`)
+          const check = await fetch(`${config.API_URL}/customers/check-exists?type=aadhar&value=${form.aadhar}`)
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This Aadhar number is already registered.')
 
-          const res = await fetch('http://localhost:3000/api/kyc/aadhaar/send-otp', {
+          const res = await fetch(`${config.API_URL}/api/kyc/aadhaar/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ aadhaar_number: form.aadhar })
@@ -149,7 +150,7 @@ export default function RegisterCustomer() {
           setSuccessMsg('✅ Aadhar session created. Please enter the 6-digit OTP sent to your mobile number.')
         } else {
           if (!aadharOtp || aadharOtp.length < 4) throw new Error('Please enter the OTP')
-          const res = await fetch('http://localhost:3000/api/kyc/aadhaar/verify-otp', {
+          const res = await fetch(`${config.API_URL}/api/kyc/aadhaar/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ client_id: initTransactionId, otp: aadharOtp })
@@ -172,11 +173,11 @@ export default function RegisterCustomer() {
         if (form.phone.length !== 10) throw new Error('Mobile number must be 10 digits')
 
         if (!mobileOtpSent) {
-          const check = await fetch(`http://localhost:3000/customers/check-exists?type=phone&value=${form.phone}`)
+          const check = await fetch(`${config.API_URL}/customers/check-exists?type=phone&value=${form.phone}`)
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This mobile number is already registered.')
 
-          const res = await fetch('http://localhost:3000/api/otp/mobile/send', {
+          const res = await fetch(`${config.API_URL}/api/otp/mobile/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: form.phone })
@@ -187,7 +188,7 @@ export default function RegisterCustomer() {
           setSuccessMsg('✅ OTP sent to your mobile number. Please enter it below.')
         } else {
           if (!mobileOtp || mobileOtp.length < 4) throw new Error('Please enter the OTP received on your mobile')
-          const res = await fetch('http://localhost:3000/api/otp/mobile/verify', {
+          const res = await fetch(`${config.API_URL}/api/otp/mobile/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: form.phone, otp: mobileOtp })
@@ -197,7 +198,7 @@ export default function RegisterCustomer() {
           
           // Silently fetch CIBIL score
           try {
-            const cibilRes = await fetch('http://localhost:3000/api/kyc/cibil/verify', {
+            const cibilRes = await fetch(`${config.API_URL}/api/kyc/cibil/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: form.pan_name || form.name || 'Customer', mobile: form.phone, pan: form.pan })
@@ -217,11 +218,11 @@ export default function RegisterCustomer() {
         if (!form.email.includes('@')) throw new Error('Please enter a valid email address')
 
         if (!emailOtpSent) {
-          const check = await fetch(`http://localhost:3000/customers/check-exists?type=email&value=${form.email}`)
+          const check = await fetch(`${config.API_URL}/customers/check-exists?type=email&value=${form.email}`)
           const checkData = await check.json()
           if (checkData.exists) throw new Error('This email address is already registered.')
 
-          const res = await fetch('http://localhost:3000/api/otp/email/send', {
+          const res = await fetch(`${config.API_URL}/api/otp/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: form.email })
@@ -232,7 +233,7 @@ export default function RegisterCustomer() {
           setSuccessMsg('✅ OTP sent to your email address. Please check your inbox.')
         } else {
           if (!emailOtp || emailOtp.length < 4) throw new Error('Please enter the OTP received on your email')
-          const res = await fetch('http://localhost:3000/api/otp/email/verify', {
+          const res = await fetch(`${config.API_URL}/api/otp/email/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: form.email, otp: emailOtp })
@@ -244,7 +245,7 @@ export default function RegisterCustomer() {
       } else if (step === 5) {
         if (!form.account_number || !form.ifsc_code) throw new Error('Account Number and IFSC are required')
         
-        const res = await fetch('http://localhost:3000/api/kyc/bank/verify', {
+        const res = await fetch(`${config.API_URL}/api/kyc/bank/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ account_number: form.account_number, ifsc_code: form.ifsc_code })
@@ -293,7 +294,7 @@ export default function RegisterCustomer() {
       fd.append('pan_img', form.pan_img)
       fd.append('card_front_img', form.card_front_img)
 
-      const res = await fetch('http://localhost:3000/customers/self-register', {
+      const res = await fetch(`${config.API_URL}/customers/self-register`, {
         method: 'POST',
         body: fd
       })
@@ -409,7 +410,7 @@ export default function RegisterCustomer() {
                     <button type="button" onClick={async () => {
                       setResending(true); setError(''); setMobileOtp('');
                       try {
-                        const res = await fetch('http://localhost:3000/api/otp/mobile/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
+                        const res = await fetch(`${config.API_URL}/api/otp/mobile/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error)
                         setSuccessMsg('✅ New OTP sent! Please check your phone.')
@@ -441,7 +442,7 @@ export default function RegisterCustomer() {
                     <button type="button" onClick={async () => {
                       setResending(true); setError(''); setEmailOtp('');
                       try {
-                        const res = await fetch('http://localhost:3000/api/otp/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) })
+                        const res = await fetch(`${config.API_URL}/api/otp/email/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) })
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error)
                         setSuccessMsg('✅ New OTP sent to your email!')

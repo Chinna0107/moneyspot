@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import config from '../../config';
 import Sidebar from '../../components/superadmin/Sidebar';
 import { toast } from 'react-hot-toast';
 import './Dashboard.css';
@@ -32,7 +33,7 @@ const Verifications = () => {
     setResult(null);
     try {
       if (panNumber.length !== 10) throw new Error('Invalid PAN format');
-      const res = await fetch('http://localhost:3000/api/kyc/pan/verify', {
+      const res = await fetch(`${config.API_URL}/api/kyc/pan/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pan: panNumber })
@@ -56,7 +57,7 @@ const Verifications = () => {
     setResult(null);
     try {
       if (aadhaarNumber.length !== 12) throw new Error('Invalid Aadhaar format');
-      const res = await fetch('http://localhost:3000/api/kyc/aadhaar/send-otp', {
+      const res = await fetch(`${config.API_URL}/api/kyc/aadhaar/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aadhaar_number: aadhaarNumber })
@@ -80,7 +81,7 @@ const Verifications = () => {
     setResult(null);
     try {
       if (!aadhaarOtp) throw new Error('Please enter the OTP');
-      const res = await fetch('http://localhost:3000/api/kyc/aadhaar/verify-otp', {
+      const res = await fetch(`${config.API_URL}/api/kyc/aadhaar/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: aadhaarSession, otp: aadhaarOtp })
@@ -105,7 +106,7 @@ const Verifications = () => {
     setResult(null);
     try {
       if (!accountNumber || !ifsc) throw new Error('Account number and IFSC are required');
-      const res = await fetch('http://localhost:3000/api/kyc/bank/verify', {
+      const res = await fetch(`${config.API_URL}/api/kyc/bank/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account_number: accountNumber, ifsc_code: ifsc })
@@ -131,7 +132,7 @@ const Verifications = () => {
       if (!cibilName || cibilMobile.length !== 10 || cibilPan.length !== 10) {
         throw new Error('Please enter valid Name, Mobile (10 digits), and PAN');
       }
-      const res = await fetch('http://localhost:3000/api/kyc/cibil/verify', {
+      const res = await fetch(`${config.API_URL}/api/kyc/cibil/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: cibilName, mobile: cibilMobile, pan: cibilPan })

@@ -94,7 +94,7 @@ export function useNotifications(role) {
 
     fetchAll()
 
-    const apiUrl = config.API_URL || 'http://localhost:3000'
+    const apiUrl = config.API_URL || config.API_URL
     const es = new EventSource(`${apiUrl}/notifications/subscribe?token=${t}`)
     esRef.current = es
 

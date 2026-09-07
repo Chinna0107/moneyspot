@@ -105,6 +105,7 @@ import CustomerDashboard from './pages/customer/Dashboard'
 import CustomerServices from './pages/customer/Services'
 import CustomerTransactions from './pages/customer/Transactions'
 import CustomerKYC from './pages/customer/KYC'
+import CustomerCibil from './pages/customer/CustomerCibil'
 import CustomerCoins from './pages/customer/Coins'
 import { CustomerOffers, CustomerNotifications, CustomerSupport, CustomerSecurity } from './pages/customer/Misc'
 
@@ -250,6 +251,7 @@ export default function App() {
         <Route path="/customer/transactions"  element={<CustomerRoute><CustomerTransactions /></CustomerRoute>} />
         <Route path="/customer/coins"         element={<CustomerRoute><CustomerCoins /></CustomerRoute>} />
         <Route path="/customer/kyc"           element={<CustomerRoute><CustomerKYC /></CustomerRoute>} />
+        <Route path="/customer/cibil"         element={<CustomerRoute><CustomerCibil /></CustomerRoute>} />
         <Route path="/customer/offers"        element={<CustomerRoute><CustomerOffers /></CustomerRoute>} />
         <Route path="/customer/notifications" element={<CustomerRoute><CustomerNotifications /></CustomerRoute>} />
         <Route path="/customer/support"       element={<CustomerRoute><CustomerSupport /></CustomerRoute>} />

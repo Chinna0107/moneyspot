@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   // Customer page routes — must NOT be proxied to backend
   const customerPageRoutes = [
     '/customer/dashboard', '/customer/services', '/customer/transactions',
-    '/customer/coins', '/customer/kyc', '/customer/offers',
+    '/customer/coins', '/customer/kyc', '/customer/cibil', '/customer/offers',
     '/customer/notifications', '/customer/support', '/customer/security',
     '/customer/register',
   ]
@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
     server: {
       historyApiFallback: true,
       proxy: {
+        '/api':       { target: backendUrl, changeOrigin: true },
         '/auth':      { target: backendUrl, changeOrigin: true },
         '/dashboard': {
           target: backendUrl,

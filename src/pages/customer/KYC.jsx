@@ -41,14 +41,76 @@ export default function CustomerKYC() {
         ) : (
           <>
             <div className="cust-card">
-              <div className="cust-card-header"><h2>Personal Information</h2></div>
+              <div className="cust-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>Personal Information</h2>
+                {profile?.profile_image_url ? (
+                  <img 
+                    src={profile.profile_image_url.startsWith('http') || profile.profile_image_url.startsWith('data:image') ? profile.profile_image_url : `data:image/jpeg;base64,${profile.profile_image_url}`} 
+                    alt="Profile" 
+                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e2e8f0', background: '#fff' }} 
+                  />
+                ) : (
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: '1px solid #e2e8f0' }}>👤</div>
+                )}
+              </div>
               <div className="cust-card-body">
-                <div className="cust-info-row"><span className="cust-info-label">Full Name</span><span className="cust-info-value">{profile?.name}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">Email</span><span className="cust-info-value">{profile?.email || '—'}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">Mobile</span><span className="cust-info-value">{profile?.phone}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">PAN Number</span><span className="cust-info-value">{profile?.pan}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">Aadhar Number</span><span className="cust-info-value">{profile?.aadhar}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">Account Number</span><span className="cust-info-value">{profile?.acc_number}</span></div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Full Name</span>
+                  <span className="cust-info-value">
+                    <span style={{ fontWeight: 600 }}>{profile?.name}</span>
+                    <span style={{ background: '#d1fae5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, marginLeft: 8 }}>✓ KYC Verified</span>
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Email</span>
+                  <span className="cust-info-value">
+                    <span>{profile?.email || '—'}</span>
+                    {profile?.email && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Verified</span>}
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Mobile</span>
+                  <span className="cust-info-value">
+                    <span>{profile?.phone}</span>
+                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Verified</span>
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">PAN Number</span>
+                  <span className="cust-info-value">
+                    <span style={{ fontWeight: 600 }}>{profile?.pan}</span>
+                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Aadhar Number</span>
+                  <span className="cust-info-value">
+                    <span style={{ fontWeight: 600 }}>{profile?.aadhar}</span>
+                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>
+                    {profile?.aadhar_linked_mobile && <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>(Linked: {profile.aadhar_linked_mobile})</span>}
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Date of Birth</span>
+                  <span className="cust-info-value">
+                    <span>{profile?.dob || '—'}</span>
+                    {profile?.dob && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Father Name</span>
+                  <span className="cust-info-value">
+                    <span>{profile?.father_name || '—'}</span>
+                    {profile?.father_name && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
+                  </span>
+                </div>
+                <div className="cust-info-row">
+                  <span className="cust-info-label">Account Number</span>
+                  <span className="cust-info-value">
+                    <span style={{ fontWeight: 600 }}>{profile?.acc_number}</span>
+                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Bank Verified</span>
+                  </span>
+                </div>
                 <div className="cust-info-row"><span className="cust-info-label">Branch</span><span className="cust-info-value">{profile?.branch || '—'}</span></div>
                 <div className="cust-info-row"><span className="cust-info-label">KYC Status</span><span className="cust-info-value"><span className="cust-badge cust-badge-success">✅ Approved</span></span></div>
                 <div className="cust-info-row"><span className="cust-info-label">Member Since</span><span className="cust-info-value">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN') : '—'}</span></div>

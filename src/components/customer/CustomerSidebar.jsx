@@ -11,6 +11,7 @@ const nav = [
   { to: '/customer/transactions',  icon: '📊', label: 'Transactions' },
   { to: '/customer/coins',         icon: '🪙', label: 'MS Coins' },
   { to: '/customer/kyc',           icon: '🪪', label: 'KYC & Profile' },
+  { to: '/customer/cibil',         icon: '💳', label: 'CIBIL Score' },
   { to: '/customer/offers',        icon: '💰', label: 'Offers' },
   { to: '/customer/notifications', icon: '🔔', label: 'Alerts' },
   { to: '/customer/support',       icon: '📞', label: 'Support' },

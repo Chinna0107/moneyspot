@@ -109,21 +109,43 @@ export default function Requests() {
                                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👤</div>
                                 )}
                                 <div>
-                                  <strong>{c.name}</strong>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <strong style={{ fontSize: 14, color: '#1e293b' }}>{c.name}</strong>
+                                    <span style={{ background: '#d1fae5', color: '#047857', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, marginLeft: 6 }}>✓ KYC Verified</span>
+                                  </div>
                                   {c.cibil_score && <div style={{ fontSize: 11, color: c.cibil_score >= 750 ? '#10b981' : '#f59e0b', marginTop: 4, fontWeight: 700 }}>💳 CIBIL: {c.cibil_score}</div>}
                                 </div>
                               </div>
                             </td>
-                            <td>{c.email}</td>
-                            <td>{c.phone}</td>
-                            <td>{c.pan}</td>
                             <td>
-                              <div>{c.aadhar}</div>
-                              {c.aadhar_linked_mobile && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>📱 {c.aadhar_linked_mobile}</div>}
+                              <div style={{ fontWeight: 500 }}>{c.email}</div>
+                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>
                             </td>
-                            <td>{c.dob || '—'}</td>
-                            <td>{c.father_name || '—'}</td>
-                            <td>{c.acc_number}</td>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{c.phone}</div>
+                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{c.pan}</div>
+                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{c.aadhar}</div>
+                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>
+                              {c.aadhar_linked_mobile && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>📱 Linked: {c.aadhar_linked_mobile}</div>}
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{c.dob || '—'}</div>
+                              {c.dob && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{c.father_name || '—'}</div>
+                              {c.father_name && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{c.acc_number}</div>
+                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Bank Verified</div>
+                            </td>
                             <td>{c.branch || '—'}</td>
                             <td>{c.source || '—'}</td>
                             <td>

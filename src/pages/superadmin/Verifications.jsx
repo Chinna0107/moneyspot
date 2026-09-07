@@ -439,8 +439,8 @@ const Verifications = () => {
                   {result.type === 'AADHAAR' && (
                     <div className="dash-kv-list">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingBottom: 20, borderBottom: '1px solid #f0f2f8', marginBottom: 12 }}>
-                        {(result.data.photo_base64 || result.data.profile_image) && (
-                          <img src={`data:image/jpeg;base64,${result.data.photo_base64 || result.data.profile_image}`} alt="Aadhaar Photo" className="verifications-photo" />
+                        {(result.data.photo_base64 || result.data.profile_image || result.data.photo) && (
+                          <img src={`data:image/jpeg;base64,${result.data.photo_base64 || result.data.profile_image || result.data.photo}`} alt="Aadhaar Photo" className="verifications-photo" />
                         )}
                         <div>
                           <h4 style={{ fontSize: 18, fontWeight: 800, color: '#402070', margin: '0 0 4px' }}>{result.data.full_name || result.data.name || result.data.user_full_name || 'Name not provided'}</h4>

@@ -96,6 +96,7 @@ export default function Finance() {
     setSaving(false)
   }
 
+  const maxDaily = daily ? Math.max(1, ...daily.map(d => parseFloat(d.amount) || 0)) : 1;
 
   const renderWallets = (wallets) => {
     const grouped = []

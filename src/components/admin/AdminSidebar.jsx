@@ -53,6 +53,8 @@ const NAV = [
       { to: '/admin/requests',     icon: <MdInbox />,        label: 'Customer Requests' },
       { to: '/admin/customers',    icon: <MdPeople />,       label: 'Customer Details' },
       { to: '/admin/customer-reminders', icon: <MdPeople />,       label: 'Customer Reminders' },
+      { to: '/admin/reverify',     icon: <MdFactCheck />,    label: 'Reverify Customers' },
+      { to: '/admin/verifications', icon: <MdFactCheck />,   label: 'Manual Verifications' },
     ]},
   { group: 'Reports',
     items: [

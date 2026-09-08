@@ -58,7 +58,7 @@ export default function CustomerKYC() {
                   <span className="cust-info-label">Full Name</span>
                   <span className="cust-info-value">
                     <span style={{ fontWeight: 600 }}>{profile?.name}</span>
-                    <span style={{ background: '#d1fae5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, marginLeft: 8 }}>✓ KYC Verified</span>
+                    {profile?.pan_verified && profile?.aadhar_verified && profile?.bank_verified && <span style={{ background: '#d1fae5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, marginLeft: 8 }}>✓ KYC Verified</span>}
                   </span>
                 </div>
                 <div className="cust-info-row">
@@ -79,14 +79,14 @@ export default function CustomerKYC() {
                   <span className="cust-info-label">PAN Number</span>
                   <span className="cust-info-value">
                     <span style={{ fontWeight: 600 }}>{profile?.pan}</span>
-                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>
+                    {profile?.pan_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>}
                   </span>
                 </div>
                 <div className="cust-info-row">
                   <span className="cust-info-label">Aadhar Number</span>
                   <span className="cust-info-value">
                     <span style={{ fontWeight: 600 }}>{profile?.aadhar}</span>
-                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>
+                    {profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>}
                     {profile?.aadhar_linked_mobile && <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>(Linked: {profile.aadhar_linked_mobile})</span>}
                   </span>
                 </div>
@@ -94,21 +94,21 @@ export default function CustomerKYC() {
                   <span className="cust-info-label">Date of Birth</span>
                   <span className="cust-info-value">
                     <span>{profile?.dob || '—'}</span>
-                    {profile?.dob && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
+                    {profile?.dob && profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
                   </span>
                 </div>
                 <div className="cust-info-row">
                   <span className="cust-info-label">Father Name</span>
                   <span className="cust-info-value">
                     <span>{profile?.father_name || '—'}</span>
-                    {profile?.father_name && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
+                    {profile?.father_name && profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
                   </span>
                 </div>
                 <div className="cust-info-row">
                   <span className="cust-info-label">Account Number</span>
                   <span className="cust-info-value">
                     <span style={{ fontWeight: 600 }}>{profile?.acc_number}</span>
-                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Bank Verified</span>
+                    {profile?.bank_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Bank Verified</span>}
                   </span>
                 </div>
                 <div className="cust-info-row"><span className="cust-info-label">Branch</span><span className="cust-info-value">{profile?.branch || '—'}</span></div>

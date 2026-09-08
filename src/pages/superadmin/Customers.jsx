@@ -27,6 +27,9 @@ export default function SuperAdminCustomers() {
   const [branch, setBranch]       = useState('')
   const [status, setStatus]       = useState('')
   const [search, setSearch]       = useState('')
+  const [tierFilter, setTierFilter] = useState('')
+  const [volumeFilter, setVolumeFilter] = useState('')
+  const [sortOption, setSortOption] = useState('date-desc')
   const [viewCustomer, setViewCustomer] = useState(null)
   const [viewTxns, setViewTxns]   = useState([])
   const [txnLoading, setTxnLoading] = useState(false)
@@ -77,9 +80,31 @@ export default function SuperAdminCustomers() {
     setTagging(false)
   }
 
+  const filteredCustomers = customers.filter(c => {
+    const amt = parseFloat(c.total_amount) || 0;
+    if (tierFilter && !getCustomerTier(amt).label.includes(tierFilter)) return false;
+    if (volumeFilter === '0-50k' && amt >= 50000) return false;
+    if (volumeFilter === '50k-2L' && (amt < 50000 || amt >= 200000)) return false;
+    if (volumeFilter === '2L-5L' && (amt < 200000 || amt >= 500000)) return false;
+    if (volumeFilter === '5L-10L' && (amt < 500000 || amt >= 1000000)) return false;
+    if (volumeFilter === '10L-50L' && (amt < 1000000 || amt >= 5000000)) return false;
+    if (volumeFilter === '50L+' && amt < 5000000) return false;
+    return true;
+  }).sort((a, b) => {
+    switch (sortOption) {
+      case 'date-asc': return new Date(a.created_at) - new Date(b.created_at);
+      case 'date-desc': return new Date(b.created_at) - new Date(a.created_at);
+      case 'vol-desc': return (parseFloat(b.total_amount) || 0) - (parseFloat(a.total_amount) || 0);
+      case 'vol-asc': return (parseFloat(a.total_amount) || 0) - (parseFloat(b.total_amount) || 0);
+      case 'name-asc': return (a.name || '').localeCompare(b.name || '');
+      case 'name-desc': return (b.name || '').localeCompare(a.name || '');
+      default: return 0;
+    }
+  });
+
   const exportExcel = () => {
-    if (!customers.length) return alert('No customers to export')
-    const rows = customers.map(c => ({
+    if (!filteredCustomers.length) return alert('No customers to export')
+    const rows = filteredCustomers.map(c => ({
       'Name':              c.name || '',
       'Phone':             c.phone || '',
       'Email':             c.email || '',
@@ -105,9 +130,9 @@ export default function SuperAdminCustomers() {
   }
 
   const exportPDF = () => {
-    if (!customers.length) return alert('No customers to export')
+    if (!filteredCustomers.length) return alert('No customers to export')
     const dateStr = new Date().toLocaleDateString('en-IN')
-    const rows = customers.map((c, i) => {
+    const rows = filteredCustomers.map((c, i) => {
       const tier     = getCustomerTier(c.total_amount)
       const activity = getActivityStatus(c, [])
       return `
@@ -138,7 +163,7 @@ export default function SuperAdminCustomers() {
         tr:nth-child(even) td { background: #f8fafc; }
       </style></head><body>
       <h2>👥 MoneySpot — Customers Report</h2>
-      <p>Exported on ${dateStr} · ${customers.length} customers${branch ? ` · Branch: ${branch}` : ''}${status ? ` · Status: ${status}` : ''}</p>
+      <p>Exported on ${dateStr} · ${filteredCustomers.length} customers${branch ? ` · Branch: ${branch}` : ''}${status ? ` · Status: ${status}` : ''}${tierFilter ? ` · Tier: ${tierFilter}` : ''}${volumeFilter ? ` · Vol: ${volumeFilter}` : ''}</p>
       <table>
         <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Tier</th><th>Activity</th><th>Source</th><th>Coins</th><th>Txns</th><th>Lifetime Volume</th><th>Status</th><th>Joined</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -223,9 +248,40 @@ export default function SuperAdminCustomers() {
               <option value="pending">⏳ Pending</option>
               <option value="rejected">❌ Rejected</option>
             </select>
+            <select value={tierFilter} onChange={e => setTierFilter(e.target.value)}
+              style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit' }}>
+              <option value="">All Tiers</option>
+              <option value="Elite Plus">🏆 Elite Plus</option>
+              <option value="Elite">👑 Elite</option>
+              <option value="Platinum">💜 Platinum</option>
+              <option value="Premium">💎 Premium</option>
+              <option value="Gold">🥇 Gold</option>
+              <option value="Silver">⭐ Silver</option>
+              <option value="Regular">🔵 Regular</option>
+              <option value="Starter">🌱 Starter</option>
+            </select>
+            <select value={volumeFilter} onChange={e => setVolumeFilter(e.target.value)}
+              style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit' }}>
+              <option value="">Any Volume</option>
+              <option value="0-50k">&lt; ₹50K</option>
+              <option value="50k-2L">₹50K - ₹2L</option>
+              <option value="2L-5L">₹2L - ₹5L</option>
+              <option value="5L-10L">₹5L - ₹10L</option>
+              <option value="10L-50L">₹10L - ₹50L</option>
+              <option value="50L+">&ge; ₹50L</option>
+            </select>
+            <select value={sortOption} onChange={e => setSortOption(e.target.value)}
+              style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit' }}>
+              <option value="date-desc">Sort: Newest First</option>
+              <option value="date-asc">Sort: Oldest First</option>
+              <option value="vol-desc">Sort: Highest Volume</option>
+              <option value="vol-asc">Sort: Lowest Volume</option>
+              <option value="name-asc">Sort: Name (A-Z)</option>
+              <option value="name-desc">Sort: Name (Z-A)</option>
+            </select>
             <button className="sa-btn sa-btn-primary sa-btn-sm" onClick={load}>🔍 Search</button>
-            {(branch || status || search) && (
-              <button onClick={() => { setBranch(''); setStatus(''); setSearch('') }}
+            {(branch || status || search || tierFilter || volumeFilter || sortOption !== 'date-desc') && (
+              <button onClick={() => { setBranch(''); setStatus(''); setSearch(''); setTierFilter(''); setVolumeFilter(''); setSortOption('date-desc'); }}
                 style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 ✕ Clear
               </button>
@@ -252,11 +308,11 @@ export default function SuperAdminCustomers() {
           {/* ── Table ── */}
           <div className="sa-card">
             <div className="sa-card-header">
-              <h2>Customers ({customers.length})</h2>
+              <h2>Customers ({filteredCustomers.length})</h2>
               <span style={{ fontSize: 12, color: '#9ca3af' }}>Click row to view full details</span>
             </div>
             <div className="sa-table-wrap">
-              {loading ? <div className="dash-loading">Loading...</div> : customers.length === 0 ? (
+              {loading ? <div className="dash-loading">Loading...</div> : filteredCustomers.length === 0 ? (
                 <div className="sa-empty">No customers found</div>
               ) : (
                 <table className="sa-table">
@@ -264,7 +320,7 @@ export default function SuperAdminCustomers() {
                     <tr><th>Name</th><th>Phone</th><th>PAN</th><th>Branch</th><th>Tier</th><th>Activity</th><th>Source</th><th>Coins</th><th>Documents</th><th>Added By</th><th>Txns</th><th>Total Amount</th><th>Status</th><th>Date</th></tr>
                   </thead>
                   <tbody>
-                    {customers.map(c => {
+                    {filteredCustomers.map(c => {
                       const ss = STATUS_STYLE[c.status] || STATUS_STYLE.pending
                       return (
                         <tr key={c.id} onClick={() => openCustomer(c)} style={{ cursor: 'pointer' }}

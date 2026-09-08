@@ -61,6 +61,10 @@ export default defineConfig(({ mode }) => {
           target: backendUrl,
           changeOrigin: true,
           bypass(req) {
+            // EventSource connects via GET without Auth header but sends token in query
+            if (req.url.includes('/subscribe?token=')) {
+              return; // let it be proxied
+            }
             // /superadmin/notifications is a React page — handled by /superadmin proxy
             // Only bypass direct /notifications page navigations
             if (req.method === 'GET' && !req.headers.authorization &&

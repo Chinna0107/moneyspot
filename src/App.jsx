@@ -76,6 +76,8 @@ import Expenses from './pages/admin/Expenses'
 import Settlements from './pages/admin/Settlements'
 import DailyClosing from './pages/admin/DailyClosing'
 import Profit from './pages/admin/Profit'
+import CustomerReverify from './pages/admin/CustomerReverify'
+import AdminVerifications from './pages/admin/Verifications'
 
 
 // Employee Pages
@@ -222,6 +224,8 @@ export default function App() {
         <Route path="/admin/notifications"   element={<AdminRoute><AdminNotifications /></AdminRoute>} />
         <Route path="/admin/leads"            element={<AdminRoute><AdminLeads /></AdminRoute>} />
         <Route path="/admin/pending-payments" element={<AdminRoute><PendingPayments role="admin" /></AdminRoute>} />
+        <Route path="/admin/reverify"         element={<AdminRoute><CustomerReverify /></AdminRoute>} />
+        <Route path="/admin/verifications"    element={<AdminRoute><AdminVerifications /></AdminRoute>} />
 
         {/* Employee routes */}
         <Route path="/employee/take-assignment/:id" element={<EmployeeRoute><TakeAssignment /></EmployeeRoute>} />

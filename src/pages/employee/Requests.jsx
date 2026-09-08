@@ -111,7 +111,7 @@ export default function Requests() {
                                 <div>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <strong style={{ fontSize: 14, color: '#1e293b' }}>{c.name}</strong>
-                                    <span style={{ background: '#d1fae5', color: '#047857', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, marginLeft: 6 }}>✓ KYC Verified</span>
+                                    {c.pan_verified && c.aadhar_verified && c.bank_verified && <span style={{ background: '#d1fae5', color: '#047857', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, marginLeft: 6 }}>✓ KYC Verified</span>}
                                   </div>
                                   {c.cibil_score && <div style={{ fontSize: 11, color: c.cibil_score >= 750 ? '#10b981' : '#f59e0b', marginTop: 4, fontWeight: 700 }}>💳 CIBIL: {c.cibil_score}</div>}
                                 </div>
@@ -119,32 +119,32 @@ export default function Requests() {
                             </td>
                             <td>
                               <div style={{ fontWeight: 500 }}>{c.email}</div>
-                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>
+                              {c.email && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 500 }}>{c.phone}</div>
-                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>
+                              {c.phone && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Verified</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 600 }}>{c.pan}</div>
-                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>
+                              {c.pan_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 600 }}>{c.aadhar}</div>
-                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>
+                              {c.aadhar_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>}
                               {c.aadhar_linked_mobile && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>📱 Linked: {c.aadhar_linked_mobile}</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 500 }}>{c.dob || '—'}</div>
-                              {c.dob && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
+                              {c.dob && c.aadhar_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 500 }}>{c.father_name || '—'}</div>
-                              {c.father_name && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
+                              {c.father_name && c.aadhar_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Aadhaar Match</div>}
                             </td>
                             <td>
                               <div style={{ fontWeight: 600 }}>{c.acc_number}</div>
-                              <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Bank Verified</div>
+                              {c.bank_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ Bank Verified</div>}
                             </td>
                             <td>{c.branch || '—'}</td>
                             <td>{c.source || '—'}</td>

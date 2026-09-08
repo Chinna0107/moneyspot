@@ -293,6 +293,9 @@ export default function RegisterCustomer() {
       fd.append('aadhar_img', form.aadhar_img)
       fd.append('pan_img', form.pan_img)
       fd.append('card_front_img', form.card_front_img)
+      fd.append('pan_verified', !!form.pan_name)
+      fd.append('aadhar_verified', 'true') // Customer must verify Aadhar OTP to proceed
+      fd.append('bank_verified', !!form.bank_verified_name)
 
       const res = await fetch(`${config.API_URL}/customers/self-register`, {
         method: 'POST',

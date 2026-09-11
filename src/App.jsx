@@ -101,6 +101,7 @@ import EmployeeNotifications from './pages/employee/Notifications'
 import AdminNotifications from './pages/admin/Notifications'
 import TakeAssignment from './pages/employee/TakeAssignment'
 import EmployeeAssignmentResult from './pages/employee/EmployeeAssignmentResult'
+import EmployeeVerifications from './pages/employee/Verifications'
 
 // Customer Pages
 import CustomerDashboard from './pages/customer/Dashboard'
@@ -234,6 +235,7 @@ export default function App() {
         <Route path="/employee/add-customer" element={<EmployeeRoute><AddCustomer /></EmployeeRoute>} />
         <Route path="/employee/customer-reminders" element={<EmployeeRoute><CustomerReminders role="employee" /></EmployeeRoute>} />
         <Route path="/employee/services"     element={<EmployeeRoute><Services /></EmployeeRoute>} />
+        <Route path="/employee/verifications" element={<EmployeeRoute><EmployeeVerifications /></EmployeeRoute>} />
         <Route path="/employee/due-dates"     element={<EmployeeRoute><EmployeeDueDates /></EmployeeRoute>} />
         <Route path="/employee/leads"         element={<EmployeeRoute><Leads /></EmployeeRoute>} />
         <Route path="/employee/attendance"    element={<EmployeeRoute><EmployeeAttendance /></EmployeeRoute>} />

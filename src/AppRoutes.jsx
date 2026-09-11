@@ -60,6 +60,7 @@ import EmployeeSidebar from './components/employee/EmployeeSidebar';
 import AdminSidebar from './components/admin/AdminSidebar';
 
 import EmployeeDueDates from './pages/employee/BillDueDates';
+import EmployeeVerifications from './pages/employee/Verifications';
 
 export default function AppRoutes() {
   return (
@@ -112,6 +113,7 @@ export default function AppRoutes() {
       <Route path="/employee/customer-info" element={<EmployeeRoute><CustomerInfo /></EmployeeRoute>} />
       <Route path="/employee/add-customer" element={<EmployeeRoute><AddCustomer /></EmployeeRoute>} />
       <Route path="/employee/services"     element={<EmployeeRoute><Services /></EmployeeRoute>} />
+      <Route path="/employee/verifications" element={<EmployeeRoute><EmployeeVerifications /></EmployeeRoute>} />
       <Route path="/employee/due-dates"    element={<EmployeeRoute><EmployeeDueDates /></EmployeeRoute>} />
       <Route path="/employee/reports"      element={<EmployeeRoute><EmployeeReports /></EmployeeRoute>} />
       <Route path="/employee/notifications" element={<EmployeeRoute><EmployeeNotifications /></EmployeeRoute>} />

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   MdDashboard, MdPeople, MdPersonAdd,
   MdMiscellaneousServices, MdPerson, MdLogout, MdBarChart, MdLeaderboard,
-  MdInbox, MdAssessment
+  MdInbox, MdAssessment, MdVerifiedUser
 } from 'react-icons/md'
 import { useRoleBasedAuth } from '../../hooks/useRoleBasedAuth'
 import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
@@ -52,6 +52,7 @@ export default function EmployeeSidebar() {
       items: [
         { to: '/employee/customer-info', icon: <MdPeople />,                label: 'Customers' },
         { to: '/employee/add-customer',  icon: <MdPersonAdd />,             label: 'Add Customer' },
+        { to: '/employee/verifications', icon: <MdVerifiedUser />,          label: 'Verifications' },
       ]},
     { group: 'Sales & Tracking',
       items: [

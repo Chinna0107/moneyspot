@@ -9,6 +9,7 @@ import { MdArrowBack, MdWarning, MdInfoOutline, MdCheckCircle, MdError, MdConten
 import { CustomerBehaviorTags, getActivityStatus, getBehaviorTags } from '../../utils/customerBehaviorUtils'
 import { getCustomerTier, TierBadge } from '../../utils/tierUtils'
 import CustomerHeader from '../../components/shared/CustomerHeader'
+import CustomerQuickView from '../../components/employee/CustomerQuickView'
 import '../../pages/dashboard.css'
 import './Services.css'
 
@@ -326,11 +327,10 @@ export default function Services() {
         {msg   && <div className="dash-alert dash-alert-success" style={{ marginBottom: 16 }}>{msg}</div>}
         {error && <div className="dash-alert dash-alert-error"   style={{ marginBottom: 16 }}>❌ {error}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
-          <form onSubmit={handleSubmit}>
-
-            {/* ── Customer ── */}
-            <div className="dash-card" style={{ marginBottom: 16, overflow: 'visible' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'stretch' }}>
+          
+            {/* ── Customer Selection ── */}
+            <div className="dash-card" style={{ overflow: 'visible' }}>
               <div className="dash-card-header">
                 <h2>👤 Customer Details</h2>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -387,161 +387,14 @@ export default function Services() {
                           </div>
                         )}
 
-                        {!loadingProfile && customerProfile && (() => {
-                          const txns      = customerProfile.transactions || []
-                          const totalAmt  = txns.reduce((s, t) => s + parseFloat(t.amount || 0), 0)
-                          const totalProfit = txns.reduce((s, t) => s + parseFloat(t.profit || 0), 0)
-                          const isPremium = txns.length >= 10 || totalAmt >= 100000
-                          const isVip     = txns.length >= 5  || totalAmt >= 50000
-                          const tag       = customerProfile.tag
-                          const tagConfig = {
-                            fraud:       { bg: '#fee2e2', border: '#fca5a5', color: '#dc2626', icon: '🚨', label: 'FRAUD ALERT', msg: 'This customer is marked as FRAUD. Do NOT proceed with any transaction.' },
-                            blacklisted: { bg: '#1f2937', border: '#374151', color: '#fff',    icon: '⛔',    label: 'BLACKLISTED',   msg: 'This customer is blacklisted. Transactions are not allowed.' },
-                            suspicious:  { bg: '#fef3c7', border: '#fcd34d', color: '#92400e', icon: '⚠️',   label: 'SUSPICIOUS',    msg: 'This customer is flagged as suspicious. Proceed with caution.' },
-                            vip:         { bg: '#f0fdf4', border: '#86efac', color: '#166534', icon: '👑',   label: 'VIP CUSTOMER',  msg: 'This is a VIP customer. Provide priority service.' },
-                          }
-                          const tc = tag ? tagConfig[tag] : null
-                          const badge = !tag && (isPremium ? { label: '👑 Premium', bg: 'linear-gradient(135deg,#d97706,#f59e0b)', color: '#fff' }
-                                          : isVip     ? { label: '⭐ VIP',     bg: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', color: '#fff' }
-                                          : null)
-                          const serviceBreakdown = txns.reduce((acc, t) => {
-                            const k = t.service_type || 'Other'
-                            acc[k] = (acc[k] || 0) + 1
-                            return acc
-                          }, {})
-                          return (
-                            <div style={{ border:'1.5px solid #e2e8f0', borderRadius:16, overflow:'hidden', animation:'cd-card-in 0.4s ease both' }}>
-
-                              {/* Tag Warning Banner */}
-                              {tc && (
-                                <div style={{ background: tc.bg, border: `2px solid ${tc.border}`, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                  <span style={{ fontSize: 28 }}>{tc.icon}</span>
-                                  <div>
-                                    <div style={{ fontWeight: 900, fontSize: 15, color: tc.color }}>{tc.label}</div>
-                                    <div style={{ fontSize: 12, color: tc.color, opacity: 0.85, marginTop: 2 }}>{tc.msg}</div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Header */}
-                              <div style={{ background:'linear-gradient(135deg,#1a0a2e 0%,#2d1155 50%,#c02040 100%)', padding:'16px 18px', position:'relative', overflow:'hidden' }}>
-                                <div style={{ position:'absolute', top:-30, right:-30, width:120, height:120, borderRadius:'50%', background:'rgba(212,175,55,0.15)', filter:'blur(20px)' }} />
-                                <div style={{ position:'absolute', bottom:-20, left:'20%', width:80, height:80, borderRadius:'50%', background:'rgba(64,32,112,0.3)', filter:'blur(15px)' }} />
-                                <div style={{ position:'relative', zIndex:1, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                                  <div style={{ flex: 1 }}>
-                                    <CustomerHeader customer={customerProfile} txns={txns} dark={true} style={{ marginBottom: 12 }} />
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                                      {badge && <span style={{ background:badge.bg, color:badge.color, fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20 }}>{badge.label}</span>}
-                                      {tag && <span style={{ background: tc.bg, color: tc.color, fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20, border:`1px solid ${tc.border}` }}>{tc.icon} {tc.label}</span>}
-                                    </div>
-                                    <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)' }}>ID: #{customerProfile.id} · {customerProfile.branch || '—'}</div>
-                                  </div>
-                                  <button type="button" onClick={clearCustomer} style={{ background:'rgba(255,255,255,0.15)', color:'#fff', border:'none', borderRadius:8, padding:'5px 12px', cursor:'pointer', fontSize:12, fontWeight:700 }}>✕ Clear</button>
-                                </div>
-                              </div>
-
-                              {/* Stats Row */}
-                              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', background:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
-                                {[
-                                  { label:'Transactions', value: txns.length,          color:'#402070' },
-                                  { label:'Total Amount', value: totalAmt >= 100000 ? `₹${(totalAmt/100000).toFixed(1)}L` : totalAmt >= 1000 ? `₹${(totalAmt/1000).toFixed(1)}K` : `₹${totalAmt}`, color:'#059669' },
-                                  { label:'Total Charges', value: totalProfit >= 1000 ? `₹${(totalProfit/1000).toFixed(1)}K` : `₹${totalProfit.toFixed(0)}`, color:'#d4af37' },
-                                  { label:'Avg / Txn',    value: txns.length ? (totalAmt/txns.length >= 1000 ? `₹${((totalAmt/txns.length)/1000).toFixed(1)}K` : `₹${Math.round(totalAmt/txns.length)}`) : '—', color:'#c02040' },
-                                ].map((s, i) => (
-                                  <div key={i} style={{ padding:'10px 12px', textAlign:'center', borderRight: i < 3 ? '1px solid #e2e8f0' : 'none' }}>
-                                    <div style={{ fontSize:9, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:0.4 }}>{s.label}</div>
-                                    <div style={{ fontSize:15, fontWeight:900, color:s.color, marginTop:3 }}>{s.value}</div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Details Grid */}
-                              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, background:'#f1f5f9' }}>
-                                {[
-                                  { icon:'🪪', label:'PAN',        value: customerProfile.pan || '—' },
-                                  { icon:'📱', label:'Mobile',     value: customerProfile.phone || '—' },
-                                  { icon:'🔢', label:'Aadhar',     value: customerProfile.aadhar ? customerProfile.aadhar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—' },
-                                  { icon:'✉️',  label:'Email',      value: customerProfile.email || '—' },
-                                  { icon:'🏦', label:'Account No', value: customerProfile.acc_number || '—' },
-                                  { icon:'🏢', label:'Branch',     value: customerProfile.branch || '—' },
-                                  { icon:'👤', label:'Added By',   value: customerProfile.added_by_name || '—' },
-                                  { icon:'📅', label:'Member Since',value: customerProfile.created_at ? new Date(customerProfile.created_at).toLocaleDateString('en-IN') : '—' },
-                                  ...(customerProfile.reviewed_by_name ? [{ icon:'✅', label:'Approved By', value: customerProfile.reviewed_by_name }] : []),
-                                  ...(customerProfile.reviewed_at ? [{ icon:'📅', label:'Approved On', value: new Date(customerProfile.reviewed_at).toLocaleDateString('en-IN') }] : []),
-                                  ...(customerProfile.pan_img_url ? [{ icon:'🖼️', label:'PAN Image', value: <a href={customerProfile.pan_img_url} target="_blank" rel="noopener noreferrer"><img src={customerProfile.pan_img_url} alt="PAN" style={{ width:60, height:40, objectFit:'cover', borderRadius:4, border:'1.5px solid rgba(64,32,112,0.2)', cursor:'pointer' }} /></a> }] : []),
-                                  ...(customerProfile.aadhar_img_url ? [{ icon:'🖼️', label:'Aadhar Image', value: <a href={customerProfile.aadhar_img_url} target="_blank" rel="noopener noreferrer"><img src={customerProfile.aadhar_img_url} alt="Aadhar" style={{ width:60, height:40, objectFit:'cover', borderRadius:4, border:'1.5px solid rgba(64,32,112,0.2)', cursor:'pointer' }} /></a> }] : []),
-                                  ...(customerProfile.card_front_img_url ? [{ icon:'🏧', label:'Card Front', value: <a href={customerProfile.card_front_img_url} target="_blank" rel="noopener noreferrer"><img src={customerProfile.card_front_img_url} alt="Card" style={{ width:60, height:40, objectFit:'cover', borderRadius:4, border:'1.5px solid rgba(64,32,112,0.2)', cursor:'pointer' }} /></a> }] : []),
-                                ].map((f, i) => (
-                                  <div key={i} style={{ background:'#fff', padding:'8px 14px' }}>
-                                    <div style={{ fontSize:9, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:0.4 }}>{f.icon} {f.label}</div>
-                                    <div style={{ fontSize:12, fontWeight:700, color:'#1a0a2e', marginTop:2, wordBreak:'break-all' }}>{f.value}</div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Service Breakdown */}
-                              {Object.keys(serviceBreakdown).length > 0 && (
-                                <div style={{ borderTop:'1px solid #e2e8f0', background:'#fafbff', padding:'10px 14px' }}>
-                                  <div style={{ fontSize:9, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>Service Breakdown</div>
-                                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                                    {Object.entries(serviceBreakdown).map(([svc, cnt]) => (
-                                      <span key={svc} style={{ background:'#ede9fe', color:'#402070', padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
-                                        {svc} ×{cnt}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Pending Balance */}
-                              {customerProfile.pendingData && customerProfile.pendingData.pending_count > 0 && (
-                                <div style={{ borderTop:'2px solid #fee2e2', background:'#fff5f5', padding:'10px 14px' }}>
-                                  <div style={{ fontSize:9, fontWeight:700, color:'#b91c1c', textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>⚠️ Pending Balance</div>
-                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                                    <span style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>{customerProfile.pendingData.pending_count} pending entr{customerProfile.pendingData.pending_count === 1 ? 'y' : 'ies'}</span>
-                                    <span style={{ fontSize:16, fontWeight:900, color:'#dc2626' }}>₹{parseFloat(customerProfile.pendingData.total_remaining).toLocaleString('en-IN')}</span>
-                                  </div>
-                                  {customerProfile.pendingData.entries.map(e => (
-                                    <div key={e.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 8px', background:'#fee2e2', borderRadius:6, marginBottom:4, fontSize:11 }}>
-                                      <span style={{ fontWeight:700, color:'#991b1b' }}>{e.status}</span>
-                                      <span style={{ color:'#b91c1c', fontWeight:700 }}>₹{parseFloat(e.remaining_amount).toLocaleString('en-IN')}</span>
-                                      <span style={{ color:'#64748b' }}>{e.age_days | 0}d old</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Bill Due Dates */}
-                              {(() => {
-                                const billTxns = txns.filter(t => t.bill_due_date).sort((a, b) => new Date(a.bill_due_date) - new Date(b.bill_due_date))
-                                if (billTxns.length === 0) return null
-                                const now = new Date()
-                                return (
-                                  <div style={{ borderTop:'2px solid #fde68a', background:'#fffbeb', padding:'10px 14px' }}>
-                                    <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>🗓️ Bill Due Dates</div>
-                                    {billTxns.slice(0, 5).map((t, i) => {
-                                      const dueDate = new Date(t.bill_due_date)
-                                      dueDate.setDate(dueDate.getDate() + 30)
-                                      const diffDays = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24))
-                                      const isOverdue = diffDays < 0
-                                      const isUrgent  = diffDays >= 0 && diffDays <= 3
-                                      return (
-                                        <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 8px', background: isOverdue ? '#fee2e2' : isUrgent ? '#fef3c7' : '#f0fdf4', borderRadius:6, marginBottom:4, fontSize:11 }}>
-                                          <span style={{ fontWeight:700, color:'#374151' }}>{t.bill_platform || 'Bill'}</span>
-                                          <span style={{ fontWeight:600, color:'#374151' }}>₹{parseFloat(t.bill_amount || 0).toLocaleString('en-IN')}</span>
-                                          <span style={{ fontWeight:700, color: isOverdue ? '#dc2626' : isUrgent ? '#d97706' : '#059669' }}>
-                                            {isOverdue ? `${Math.abs(diffDays)}d overdue` : diffDays === 0 ? 'Due Today!' : `Due ${dueDate.toLocaleDateString('en-IN')}`}
-                                          </span>
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                )
-                              })()}
-
+                        {!loadingProfile && customerProfile && (
+                          <div style={{ marginTop: 24, position: 'relative' }}>
+                            <div style={{ position: 'absolute', top: -10, right: 0, zIndex: 10 }}>
+                              <button type="button" onClick={clearCustomer} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✕ Clear Customer</button>
                             </div>
-                          )
-                        })()}
+                            <CustomerQuickView customer={customerProfile} txns={customerProfile.transactions || []} />
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div style={{ fontSize: 13, color: '#9ca3af' }}>Type at least 2 characters to search approved customers</div>
@@ -555,6 +408,8 @@ export default function Services() {
                 )}
               </div>
             </div>
+
+            <form onSubmit={handleSubmit}>
 
             {/* ── Service Type — show only after customer selected ── */}
             {(form.customer_id || form.cust_name || custMode === 'manual') && (
@@ -677,6 +532,25 @@ export default function Services() {
                   </div>
                 )}
 
+                {(form.amount || form.total_collected) && svcType && form.cust_name && (
+                  <div className="dash-card" style={{ marginBottom: 16 }}>
+                    <div className="dash-card-header"><h2>💰 Summary</h2></div>
+                    <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+                      {isBillWd && <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Bill Amount</span><strong>₹{fmt(form.bill_amount || 0)}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Withdrawal</span><strong>₹{fmt(form.amount || 0)}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Charges</span><strong style={{ color: '#dc2626' }}>₹{fmt(form.charges_amount || 0)}</strong></div>
+                        <div style={{ borderTop: '2px solid #f0f2f8', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}><strong>Total Collected</strong><strong style={{ color: '#059669', fontSize: 18 }}>₹{fmt(form.total_collected || 0)}</strong></div>
+                      </>}
+                      {(isCardWd || isDMT || isAEPS || isOnlyBill) && <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Amount</span><strong>₹{fmt(form.amount || 0)}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Charges ({form.charges_pct || 0}%)</span><strong style={{ color: '#dc2626' }}>₹{fmt(form.charges_amount || 0)}</strong></div>
+                        <div style={{ borderTop: '2px solid #f0f2f8', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}><span>Settled</span><strong style={{ color: '#059669', fontSize: 18 }}>₹{fmt(form.settled_amount || 0)}</strong></div>
+                      </>}
+                    </div>
+                  </div>
+                )}
+
                 {svcType && (
                   <button type="submit" className="dash-btn dash-btn-primary"
                     disabled={saving || !form.cust_name}>
@@ -687,56 +561,7 @@ export default function Services() {
             )}
           </form>
 
-          {/* ── Sidebar ── */}
-          <div style={{ position: 'sticky', top: 80 }}>
-            {form.cust_name && (
-              <div className="dash-card" style={{ marginBottom: 16 }}>
-                <div className="dash-card-header"><h2>👤 Customer</h2></div>
-                <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
-                  <div style={{ fontWeight: 800, color: '#402070', fontSize: 15 }}>{form.cust_name}</div>
-                  <div style={{ color: '#6b7280' }}>PAN: <strong>{form.cust_pan || '—'}</strong></div>
-                  <div style={{ color: '#6b7280' }}>Mobile: <strong>{form.cust_mobile || '—'}</strong></div>
-                  
-                  {customerProfile && customerProfile.pendingData && customerProfile.pendingData.pending_count > 0 && (
-                    <div style={{ marginTop: 8, padding: 10, background: '#fff5f5', borderRadius: 8, border: '1.5px solid #fecaca' }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase', marginBottom: 4 }}>⚠️ Pending Balance</div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#dc2626' }}>₹{parseFloat(customerProfile.pendingData.total_remaining).toLocaleString('en-IN')}</div>
-                      <div style={{ fontSize: 11, color: '#991b1b', marginTop: 2 }}>{customerProfile.pendingData.pending_count} pending entr{customerProfile.pendingData.pending_count === 1 ? 'y' : 'ies'}</div>
-                    </div>
-                  )}
-
-                  {customerProfile && (() => {
-                    const billTxns = (customerProfile.transactions || []).filter(t => t.bill_due_date).sort((a, b) => new Date(a.bill_due_date) - new Date(b.bill_due_date))
-                    if (billTxns.length === 0) return null
-                    const now = new Date()
-                    return (
-                      <div style={{ marginTop: 8, padding: 10, background: '#fffbeb', borderRadius: 8, border: '1.5px solid #fde68a' }}>
-                        <div style={{ fontSize: 10, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', marginBottom: 6 }}>🗓️ Upcoming Dues</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {billTxns.slice(0, 3).map((t, i) => {
-                            const dueDate = new Date(t.bill_due_date)
-                            dueDate.setDate(dueDate.getDate() + 30)
-                            const diffDays = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24))
-                            const isOverdue = diffDays < 0
-                            const isUrgent  = diffDays >= 0 && diffDays <= 3
-                            return (
-                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                                <span style={{ fontWeight: 700, color: '#374151' }}>{t.bill_platform || 'Bill'}</span>
-                                <span style={{ fontWeight: 700, color: isOverdue ? '#dc2626' : isUrgent ? '#d97706' : '#059669' }}>
-                                  {isOverdue ? `Overdue (${dueDate.getDate()}/${dueDate.getMonth()+1})` : diffDays === 0 ? 'Today!' : `${dueDate.getDate()}/${dueDate.getMonth()+1}`}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              </div>
-            )}
-
-            {(form.amount || form.total_collected) && svcType && form.cust_name && (
+          {(form.amount || form.total_collected) && svcType && form.cust_name && (
               <div className="dash-card" style={{ marginBottom: 16 }}>
                 <div className="dash-card-header"><h2>💰 Summary</h2></div>
                 <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
@@ -766,7 +591,6 @@ export default function Services() {
               </div>
             )}
           </div>
-        </div>
 
         {/* ── Recent Transactions — always visible ── */}
         {history.length > 0 && (

@@ -21,11 +21,13 @@ export default function PendingPayments({ role = 'employee' }) {
   const [followUpModal, setFollowUpModal] = useState(false);
   const [ptpModal, setPtpModal] = useState(false);
   const [newEntryModal, setNewEntryModal] = useState(false);
+  const [addAmountModal, setAddAmountModal] = useState(false);
   
   // Forms
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_mode: 'Cash', reference_note: '' });
   const [followUpForm, setFollowUpForm] = useState({ contact_mode: 'Call', customer_response: '', next_follow_up_date: '' });
   const [ptpForm, setPtpForm] = useState({ ptp_date: '', ptp_amount: '', note: '' });
+  const [addAmountForm, setAddAmountForm] = useState({ amount: '', note: '' });
   const [newEntryForm, setNewEntryForm] = useState({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
 
   // Customer live search (for new pending entry modal)
@@ -89,6 +91,23 @@ export default function PendingPayments({ role = 'employee' }) {
       });
       setPaymentModal(false);
       setPaymentForm({ amount: '', payment_mode: 'Cash', reference_note: '' });
+      openDrawer(activeDrawerId);
+      loadData();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const handleAddAmount = async (e) => {
+    e.preventDefault();
+    try {
+      await api(`/collections/${activeDrawerId}/add-amount`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(addAmountForm)
+      });
+      setAddAmountModal(false);
+      setAddAmountForm({ amount: '', note: '' });
       openDrawer(activeDrawerId);
       loadData();
     } catch (e) {
@@ -200,6 +219,55 @@ export default function PendingPayments({ role = 'employee' }) {
               <div className="dash-card" style={{ padding: 16, textAlign: 'center', borderTop: '4px solid #10b981' }}>
                 <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Recovered This Month</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#10b981', marginTop: 8 }}>₹{Number(summary.recovered_month).toLocaleString()}</div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: Add Pending Amount */}
+          {addAmountModal && activeDrawerData && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAddAmountModal(false)}>
+              <div style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 460, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: 'linear-gradient(135deg, #10b981, #047857)', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Modify Balance</div>
+                    <div style={{ color: '#fff', fontWeight: 800, fontSize: 20, marginTop: 4 }}>Add Pending Amount</div>
+                  </div>
+                  <button onClick={() => setAddAmountModal(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                </div>
+                
+                <form onSubmit={handleAddAmount} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>Additional Amount (₹) <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input 
+                      type="number" 
+                      required min="1" 
+                      value={addAmountForm.amount} 
+                      onChange={e => setAddAmountForm({...addAmountForm, amount: e.target.value})}
+                      style={{ padding: '12px 16px', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 16, fontWeight: 600, color: '#0f172a', outline: 'none', transition: 'border-color 0.2s' }}
+                      onFocus={e => e.target.style.borderColor = '#10b981'}
+                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                      placeholder="e.g. 500"
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>Reason / Note</label>
+                    <textarea 
+                      rows="3" 
+                      value={addAmountForm.note} 
+                      onChange={e => setAddAmountForm({...addAmountForm, note: e.target.value})} 
+                      style={{ padding: '12px 16px', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 14, color: '#0f172a', outline: 'none', resize: 'vertical', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+                      onFocus={e => e.target.style.borderColor = '#10b981'}
+                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                      placeholder="Why is this amount being added?"
+                    ></textarea>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                    <button type="button" onClick={() => setAddAmountModal(false)} style={{ flex: 1, padding: '14px', background: '#f1f5f9', color: '#475569', fontWeight: 700, border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 15 }}>Cancel</button>
+                    <button type="submit" style={{ flex: 1, padding: '14px', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontWeight: 800, border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>Confirm Addition</button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
@@ -345,8 +413,9 @@ export default function PendingPayments({ role = 'employee' }) {
               {activeDrawerData.status !== 'Cleared' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
                   <button className="dash-btn dash-btn-primary" onClick={() => setPaymentModal(true)}>💵 Add Payment</button>
+                  <button className="dash-btn" style={{ background: '#10b981', color: '#fff' }} onClick={() => setAddAmountModal(true)}>➕ Add Pending Amount</button>
                   <button className="dash-btn" style={{ background: '#f59e0b', color: '#fff' }} onClick={() => setFollowUpModal(true)}>📞 Log Follow-up</button>
-                  <button className="dash-btn" style={{ background: '#3b82f6', color: '#fff', gridColumn: '1 / -1' }} onClick={() => setPtpModal(true)}>🤝 Set Promise to Pay</button>
+                  <button className="dash-btn" style={{ background: '#3b82f6', color: '#fff' }} onClick={() => setPtpModal(true)}>🤝 Set Promise to Pay</button>
                 </div>
               )}
 

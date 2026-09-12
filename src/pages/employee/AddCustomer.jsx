@@ -316,9 +316,9 @@ export default function AddCustomer() {
     
     const payload = {
       ...form,
-      name: form.pan_name,
+      name: form.pan_name || form.manual_name,
       pan_verified: !!form.pan_name,
-      aadhar_verified: true,
+      aadhar_verified: true, // As requested, if bypassed, it's effectively accepted
       bank_verified: !!form.bank_verified_name,
       account_number: form.acc_number
     }
@@ -425,13 +425,19 @@ export default function AddCustomer() {
 
                   {step === 2 && (
                     <>
-                      {form.pan_name && (
+                      {form.pan_name ? (
                         <div className="wizard-data-box">
                           <div className="wizard-data-icon"><MdVerifiedUser /></div>
                           <div className="wizard-data-content">
                             <h4>Verified Name (PAN)</h4>
                             <p>{form.pan_name}</p>
                           </div>
+                        </div>
+                      ) : (
+                        <div className="wizard-input-group">
+                          <label className="wizard-label">Customer Full Name (Required since PAN was bypassed) *</label>
+                          <input required className="wizard-input" placeholder="Full Name as per PAN"
+                            value={form.manual_name || ''} onChange={e => { setError(''); setField('manual_name', e.target.value) }} />
                         </div>
                       )}
                       
@@ -634,6 +640,14 @@ export default function AddCustomer() {
                           Back
                         </button>
                       )}
+                      
+                      {/* Bypass Button for All Verification Steps (1 to 5) */}
+                      {step < 6 && (
+                        <button type="button" onClick={() => { setError(''); setStep(s => s + 1) }} className="wizard-btn-secondary" style={{ flex: 1, background: '#fef3c7', color: '#92400e', borderColor: '#fde68a', fontWeight: 'bold' }}>
+                          Bypass
+                        </button>
+                      )}
+
                       <button type="submit" className="wizard-btn-primary" style={{ flex: 2 }} disabled={loading || submitting || !!fraudAlert}>
                         {loading || submitting ? 'Processing...' 
                           : step === 6 ? 'Submit Customer'

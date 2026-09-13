@@ -85,8 +85,11 @@ export default function CustomerDashboard() {
                   { label: 'PAN Number',   value: profile?.pan },
                   { label: 'Mobile',       value: profile?.phone },
                   { label: 'Email',        value: profile?.email || '—' },
-                  { label: 'Account No.',  value: profile?.acc_number },
-                  { label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN') : '—' },
+                  { label: 'Account No.',  value: profile?.acc_number || '—' },
+                  { label: 'Onboarded By', value: profile?.added_by_name || 'System' },
+                  { label: 'Approved By',  value: profile?.reviewed_by_name || (profile?.status === 'approved' ? 'Admin' : 'Pending') },
+                  { label: 'Onboarded',    value: profile?.created_at ? new Date(profile.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—' },
+                  { label: 'Approved',     value: profile?.reviewed_at ? new Date(profile.reviewed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : (profile?.status === 'approved' ? '—' : 'Pending') },
                 ].map((row, i) => (
                   <div key={i} className="cd-info-row" style={{ animationDelay: `${i * 50}ms` }}>
                     <span className="cd-info-label">{row.label}</span>

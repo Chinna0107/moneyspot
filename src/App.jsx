@@ -69,6 +69,7 @@ import AdminConfig from './pages/admin/Config'
 import FinanceDashboard from './pages/admin/FinanceDashboard'
 import AdminGrowth from './pages/admin/Growth'
 import AdminAssignTargets from './pages/admin/AssignTargets'
+import OnboardingStats from './pages/admin/OnboardingStats'
 import Wallets from './pages/admin/Wallets'
 import Ledger from './pages/admin/Ledger'
 import CashFlow from './pages/admin/CashFlow'
@@ -205,6 +206,7 @@ export default function App() {
         <Route path="/admin/finance"         element={<AdminRoute><FinanceDashboard /></AdminRoute>} />
         <Route path="/admin/growth"          element={<AdminRoute><AdminGrowth /></AdminRoute>} />
         <Route path="/admin/assign-targets"  element={<AdminRoute><AdminAssignTargets /></AdminRoute>} />
+        <Route path="/admin/employee-onboarding" element={<AdminRoute><OnboardingStats /></AdminRoute>} />
         <Route path="/admin/finance/wallets"     element={<AdminRoute><Wallets /></AdminRoute>} />
         <Route path="/admin/finance/ledger"      element={<AdminRoute><Ledger /></AdminRoute>} />
         <Route path="/admin/finance/cashflow"    element={<AdminRoute><CashFlow /></AdminRoute>} />

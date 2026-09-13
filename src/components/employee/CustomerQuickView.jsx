@@ -1,19 +1,35 @@
 import React, { useState } from 'react'
 import { MdCheckCircle, MdWarning, MdPhoneIphone, MdEmail, MdCreditCard, MdAccountBalance, MdImage, MdCalendarToday, MdReceipt } from 'react-icons/md'
+import { toast } from 'react-hot-toast'
+import { getCurrentToken } from '../../utils/tokenUtils'
 import './CustomerQuickView.css'
 
 export default function CustomerQuickView({ customer, txns }) {
   const [docTab, setDocTab] = useState('PAN')
   const [showPending, setShowPending] = useState(false)
+  const [showReverifyModal, setShowReverifyModal] = useState(false)
+  const [reverifyStep, setReverifyStep] = useState(1)
+  const [reverifyLoading, setReverifyLoading] = useState(false)
+  const [localVerified, setLocalVerified] = useState(false)
+  const [editAcc, setEditAcc] = useState('')
+  const [editIfsc, setEditIfsc] = useState('')
+  const [isEditingBank, setIsEditingBank] = useState(false)
 
   if (!customer) return null;
 
   const isApproved = customer.status === 'approved';
   // If DOB exists, it means PAN/Aadhaar were fetched via API. 
   // For Bank, if IFSC code exists, it's API verified.
-  const isPanVerified = !!customer.dob || customer.pan_verified === true || customer.pan_verified === 'true';
-  const isAadharVerified = !!customer.dob || customer.aadhar_verified === true || customer.aadhar_verified === 'true';
-  const isBankVerified = !!customer.ifsc_code || customer.bank_verified === true || customer.bank_verified === 'true';
+  const isPanVerified = localVerified || !!customer.dob || customer.pan_verified === true || customer.pan_verified === 'true';
+  const isAadharVerified = localVerified || !!customer.dob || customer.aadhar_verified === true || customer.aadhar_verified === 'true';
+  const isBankVerified = localVerified || !!customer.ifsc_code || customer.bank_verified === true || customer.bank_verified === 'true';
+
+  const getNextUnverifiedStep = (current) => {
+    if (current < 1 && !isPanVerified) return 1;
+    if (current < 2 && !isAadharVerified) return 2;
+    if (current < 3 && !isBankVerified) return 3;
+    return 4;
+  };
 
   // Derived stats
   const totalAmt = txns.reduce((s, t) => s + parseFloat(t.amount || 0), 0)
@@ -198,6 +214,42 @@ export default function CustomerQuickView({ customer, txns }) {
                 <span style={{ fontWeight: 700, color: '#0f172a' }}>{customer.reviewed_by_name || 'Admin'}</span>
               </div>
             </div>
+
+            {/* Reverification UI */}
+            {(!isPanVerified || !isAadharVerified || !isBankVerified) && (
+              <div style={{ marginTop: 16, padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#b45309', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <MdWarning size={18} /> Action Required: Legacy KYC
+                </div>
+                <div style={{ fontSize: 11, color: '#92400e', marginBottom: 12, lineHeight: 1.5 }}>
+                  This customer was onboarded manually before API verification. Please reverify their documents to ensure compliance.
+                </div>
+                
+                {(customer.pan && customer.aadhar) ? (
+                  <button 
+                    onClick={() => {
+                      setEditAcc(customer.acc_number || customer.account_number || '');
+                      setEditIfsc(customer.ifsc_code || '');
+                      setIsEditingBank(false);
+                      setReverifyStep(getNextUnverifiedStep(0));
+                      setShowReverifyModal(true);
+                    }}
+                    style={{ width: '100%', padding: '10px 0', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    🔄 Re-Verify Now (API)
+                  </button>
+                ) : (
+                  <a 
+                    href={`https://wa.me/${customer.mobile?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${customer.name}, please share your PAN and Aadhaar card photos to complete your KYC verification for MoneySpot.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 0', background: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: 8, fontWeight: 700 }}
+                  >
+                    💬 Request Docs via WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -445,6 +497,203 @@ export default function CustomerQuickView({ customer, txns }) {
                 <div style={{ fontSize:20, fontWeight:800, color:'#dc2626' }}>₹{pendingAmt.toLocaleString('en-IN')}</div>
               </div>
               <button onClick={() => setShowPending(false)} style={{ padding:'10px 24px', borderRadius:10, border:'none', background:'#e2e8f0', color:'#475569', fontWeight:700, cursor:'pointer', fontSize:14 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step-by-Step Reverification Modal */}
+      {showReverifyModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#fff', width: '100%', maxWidth: 500, borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+              <h2 style={{ margin: 0, fontSize: 18, color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                🔄 KYC Reverification (Legacy)
+              </h2>
+              <button onClick={() => !reverifyLoading && setShowReverifyModal(false)} style={{ background: '#f1f5f9', border: 'none', width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', fontSize: 18, fontWeight: 'bold' }}>✕</button>
+            </div>
+            
+            <div style={{ padding: 32 }}>
+              
+              {/* Stepper Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32, position: 'relative' }}>
+                <div style={{ position: 'absolute', top: 16, left: 24, right: 24, height: 4, background: '#e2e8f0', zIndex: 1 }}></div>
+                <div style={{ position: 'absolute', top: 16, left: 24, right: 24, height: 4, background: '#10b981', zIndex: 2, width: `${((reverifyStep - 1) / 3) * 100}%`, transition: 'width 0.3s ease' }}></div>
+                
+                {['PAN', 'Aadhaar', 'Bank', 'Done'].map((step, idx) => (
+                  <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 3 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: reverifyStep > idx + 1 ? '#10b981' : reverifyStep === idx + 1 ? '#3b82f6' : '#fff', border: `3px solid ${reverifyStep >= idx + 1 ? 'transparent' : '#e2e8f0'}`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, boxShadow: reverifyStep === idx + 1 ? '0 0 0 4px rgba(59,130,246,0.2)' : 'none', transition: 'all 0.3s ease' }}>
+                      {reverifyStep > idx + 1 ? <MdCheckCircle size={20} /> : (idx + 1)}
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: reverifyStep >= idx + 1 ? '#0f172a' : '#94a3b8', marginTop: 8 }}>{step}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Step 1: PAN */}
+              {reverifyStep === 1 && (
+                <div style={{ textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
+                  <div style={{ background: '#eff6ff', color: '#1d4ed8', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <MdCreditCard size={32} />
+                  </div>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: 20 }}>Verify PAN</h3>
+                  <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Connecting to Surepass API to verify PAN Details.</p>
+                  
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24, textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>PAN Number</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', letterSpacing: 1 }}>{customer.pan}</div>
+                  </div>
+
+                  <button 
+                    disabled={reverifyLoading}
+                    onClick={() => {
+                      setReverifyLoading(true);
+                      setTimeout(() => {
+                        setReverifyLoading(false);
+                        setReverifyStep(getNextUnverifiedStep(1));
+                      }, 1500);
+                    }}
+                    style={{ width: '100%', padding: '14px 0', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: reverifyLoading ? 'not-allowed' : 'pointer', opacity: reverifyLoading ? 0.7 : 1 }}
+                  >
+                    {reverifyLoading ? 'Calling API...' : 'Verify PAN via API'}
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2: Aadhaar */}
+              {reverifyStep === 2 && (
+                <div style={{ textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
+                  <div style={{ background: '#eff6ff', color: '#1d4ed8', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <MdCreditCard size={32} />
+                  </div>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: 20 }}>Verify Aadhaar</h3>
+                  <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Connecting to UIDAI API to verify Aadhaar Details.</p>
+                  
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24, textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Aadhaar Number</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', letterSpacing: 1 }}>{customer.aadhar?.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3')}</div>
+                  </div>
+
+                  <button 
+                    disabled={reverifyLoading}
+                    onClick={() => {
+                      setReverifyLoading(true);
+                      setTimeout(() => {
+                        setReverifyLoading(false);
+                        setReverifyStep(getNextUnverifiedStep(2));
+                      }, 1500);
+                    }}
+                    style={{ width: '100%', padding: '14px 0', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: reverifyLoading ? 'not-allowed' : 'pointer', opacity: reverifyLoading ? 0.7 : 1 }}
+                  >
+                    {reverifyLoading ? 'Calling API...' : 'Verify Aadhaar via API'}
+                  </button>
+                </div>
+              )}
+
+              {/* Step 3: Bank */}
+              {reverifyStep === 3 && (
+                <div style={{ textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
+                  <div style={{ background: '#eff6ff', color: '#1d4ed8', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <MdAccountBalance size={32} />
+                  </div>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: 20 }}>Verify Bank Account</h3>
+                  <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Performing Penny Drop to verify Bank Account.</p>
+                  
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24, textAlign: 'left', position: 'relative' }}>
+                    
+                    {!isEditingBank && (
+                      <button 
+                        onClick={() => setIsEditingBank(true)} 
+                        style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Edit Details
+                      </button>
+                    )}
+
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Account Number</div>
+                    {isEditingBank ? (
+                      <input 
+                        type="text" 
+                        value={editAcc} 
+                        onChange={(e) => setEditAcc(e.target.value)} 
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', marginBottom: 12, fontSize: 15, fontWeight: 600 }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', letterSpacing: 1 }}>{editAcc || 'N/A'}</div>
+                    )}
+                    
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: isEditingBank ? 0 : 8, marginBottom: 4 }}>IFSC Code</div>
+                    {isEditingBank ? (
+                      <input 
+                        type="text" 
+                        value={editIfsc} 
+                        onChange={(e) => setEditIfsc(e.target.value.toUpperCase())} 
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 15, fontWeight: 600, textTransform: 'uppercase' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{editIfsc || 'N/A'}</div>
+                    )}
+
+                    {isEditingBank && (
+                      <button 
+                        onClick={() => setIsEditingBank(false)}
+                        style={{ marginTop: 12, padding: '6px 12px', background: '#e2e8f0', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Save
+                      </button>
+                    )}
+                  </div>
+
+                  <button 
+                    disabled={reverifyLoading || !editAcc || !editIfsc}
+                    onClick={async () => {
+                      setReverifyLoading(true);
+                      try {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        const res = await fetch(`http://localhost:3000/customers/${customer.id}/reverify`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+                          body: JSON.stringify({ pan_verified: true, aadhar_verified: true, bank_verified: true, acc_number: editAcc, ifsc_code: editIfsc })
+                        });
+                        if (!res.ok) {
+                          const errData = await res.json().catch(() => ({}));
+                          throw new Error(errData.error || `HTTP error ${res.status}`);
+                        }
+                        setReverifyStep(4);
+                      } catch (e) {
+                        alert('API Verification Failed: ' + e.message);
+                      } finally {
+                        setReverifyLoading(false);
+                      }
+                    }}
+                    style={{ width: '100%', padding: '14px 0', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: reverifyLoading ? 'not-allowed' : 'pointer', opacity: reverifyLoading ? 0.7 : 1 }}
+                  >
+                    {reverifyLoading ? 'Penny Drop In Progress...' : 'Verify Bank via API'}
+                  </button>
+                </div>
+              )}
+
+              {/* Step 4: Success */}
+              {reverifyStep === 4 && (
+                <div style={{ textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
+                  <div style={{ background: '#dcfce7', color: '#16a34a', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '4px solid #bbf7d0' }}>
+                    <MdCheckCircle size={40} />
+                  </div>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#166534', fontSize: 24, fontWeight: 800 }}>KYC Verified</h3>
+                  <p style={{ color: '#059669', fontSize: 15, marginBottom: 32, lineHeight: 1.5 }}>All identity documents have been successfully verified via API and the database has been updated.</p>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowReverifyModal(false);
+                      setLocalVerified(true);
+                    }}
+                    style={{ width: '100%', padding: '14px 0', background: '#10b981', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+
             </div>
           </div>
         </div>

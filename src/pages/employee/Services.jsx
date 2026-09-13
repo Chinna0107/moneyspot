@@ -409,9 +409,29 @@ export default function Services() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            {(() => {
+              const isPan = customerProfile && (!!customerProfile.dob || customerProfile.pan_verified === true || customerProfile.pan_verified === 'true');
+              const isAadhaar = customerProfile && (!!customerProfile.dob || customerProfile.aadhar_verified === true || customerProfile.aadhar_verified === 'true');
+              const isBank = customerProfile && (!!customerProfile.ifsc_code || customerProfile.bank_verified === true || customerProfile.bank_verified === 'true');
+              const isLegacy = customerProfile && (!isPan || !isAadhaar || !isBank);
 
-            {/* ── Service Type — show only after customer selected ── */}
+              if (isLegacy && custMode === 'search') {
+                return (
+                  <div style={{ marginTop: 24, padding: 32, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 16, textAlign: 'center' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>🛑</div>
+                    <h2 style={{ color: '#991b1b', marginBottom: 12, fontSize: 22, fontWeight: 800 }}>API Reverification Required</h2>
+                    <p style={{ color: '#b91c1c', fontSize: 15, lineHeight: 1.6, maxWidth: 500, margin: '0 auto' }}>
+                      This customer requires API Reverification. Please proceed with KYC first using the <strong>Re-Verify Now</strong> button in their profile above before processing any new transactions.
+                    </p>
+                  </div>
+                )
+              }
+
+              return (
+                <>
+                  <form onSubmit={handleSubmit}>
+
+                  {/* ── Service Type — show only after customer selected ── */}
             {(form.customer_id || form.cust_name || custMode === 'manual') && (
               <>
                 {custMode !== 'manual' && (
@@ -579,6 +599,9 @@ export default function Services() {
                 </div>
               </div>
             )}
+            </>
+          )
+        })()}
 
             {!form.cust_name && (
               <div className="dash-card">

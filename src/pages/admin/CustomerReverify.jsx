@@ -14,6 +14,10 @@ export default function CustomerReverify() {
   const [loading, setLoading] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   
+  // New states for Unverified tracking based on missing fields
+  const [counts, setCounts] = useState({ total_unverified: 0, missing_dob: 0, missing_ifsc: 0, missing_father_name: 0 })
+  const [activeFilter, setActiveFilter] = useState('') // '', 'dob', 'ifsc', 'father_name'
+
   // Verification states
   const [form, setForm] = useState({})
   
@@ -24,20 +28,25 @@ export default function CustomerReverify() {
 
   const [saving, setSaving] = useState(false)
 
-  const handleSearch = async () => {
-    if (searchTerm.length < 2) return toast.error('Enter at least 2 characters')
+  // Fetch unverified customers on load and when filter changes
+  const fetchUnverified = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${config.API_URL}/customers/approved?search=${encodeURIComponent(searchTerm)}`, { headers: auth() })
+      const res = await fetch(`${config.API_URL}/customers/unverified?filter=${activeFilter}`, { headers: auth() })
       if (res.ok) {
         const data = await res.json()
-        setCustomers(data)
+        setCustomers(data.customers || [])
+        setCounts(data.counts || { total_unverified: 0, missing_dob: 0, missing_ifsc: 0, missing_father_name: 0 })
       }
     } catch (e) {
-      toast.error('Search failed')
+      toast.error('Failed to load customers')
     }
     setLoading(false)
   }
+
+  React.useEffect(() => {
+    fetchUnverified()
+  }, [activeFilter])
 
   const selectCustomer = (c) => {
     setSelectedCustomer(c)
@@ -46,6 +55,9 @@ export default function CustomerReverify() {
       pan_verified: c.pan_verified || false,
       aadhar_verified: c.aadhar_verified || false,
       bank_verified: c.bank_verified || false,
+      dob: c.dob || '',
+      ifsc_code: c.ifsc_code || '',
+      father_name: c.father_name || '',
       aadhar_img: null,
       pan_img: null,
       card_front_img: null,
@@ -66,8 +78,11 @@ export default function CustomerReverify() {
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setForm({ ...form, pan_verified: true, pan_name: data.full_name })
-        toast.success(`PAN verified: ${data.full_name}`)
+        // Extract dob and father_name if returned by API
+        const dob = data.data?.data?.dob || data.data?.dob || form.dob;
+        const father_name = data.data?.data?.father_name || data.data?.father_name || form.father_name;
+        setForm({ ...form, pan_verified: true, pan_name: data.full_name, dob, father_name })
+        toast.success(`PAN verified: ${data.full_name || 'Success'}`)
       } else throw new Error(data.error || 'PAN verification failed')
     } catch (e) { toast.error(e.message) }
   }
@@ -82,7 +97,7 @@ export default function CustomerReverify() {
       const data = await res.json()
       if (res.ok && data.success) {
         setForm({ ...form, bank_verified: true, bank_verified_name: data.verified_name })
-        toast.success(`Bank verified: ${data.verified_name}`)
+        toast.success(`Bank verified: ${data.verified_name || 'Success'}`)
       } else throw new Error(data.error || 'Bank verification failed')
     } catch (e) { toast.error(e.message) }
   }
@@ -97,7 +112,6 @@ export default function CustomerReverify() {
       const data = await res.json()
       if (res.ok && data.success) {
         const idToUse = data.data?.tranx_id || data.data?.data?.session_id || form.aadhar;
-        console.log("Setting Aadhaar Ref ID:", idToUse);
         setRefId({ ...refId, aadhar: idToUse })
         setOtpSent({ ...otpSent, aadhar: true })
         toast.success('Aadhaar OTP sent')
@@ -109,14 +123,15 @@ export default function CustomerReverify() {
     if (!otpVal.aadhar) return toast.error('Enter Aadhaar OTP')
     try {
       const clientId = refId.aadhar || form.aadhar;
-      console.log("Verifying Aadhaar OTP with client_id:", clientId);
       const res = await fetch(`${config.API_URL}/api/kyc/aadhaar/verify-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId, otp: otpVal.aadhar })
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setForm({ ...form, aadhar_verified: true, aadhar_linked_mobile: data.full_name })
+        const dob = data.data?.data?.dob || data.data?.dob || form.dob;
+        const father_name = data.data?.data?.father_name || data.data?.father_name || form.father_name;
+        setForm({ ...form, aadhar_verified: true, aadhar_linked_mobile: data.full_name, dob, father_name })
         toast.success('Aadhaar verified successfully')
       } else throw new Error(data.error || 'Aadhaar OTP verification failed')
     } catch (e) { toast.error(e.message) }
@@ -129,12 +144,14 @@ export default function CustomerReverify() {
       fd.append('pan_verified', form.pan_verified)
       fd.append('aadhar_verified', form.aadhar_verified)
       fd.append('bank_verified', form.bank_verified)
-      fd.append('phone', form.phone)
-      fd.append('email', form.email)
-      fd.append('pan', form.pan)
-      fd.append('aadhar', form.aadhar)
-      fd.append('acc_number', form.acc_number)
+      fd.append('phone', form.phone || '')
+      fd.append('email', form.email || '')
+      fd.append('pan', form.pan || '')
+      fd.append('aadhar', form.aadhar || '')
+      fd.append('acc_number', form.acc_number || '')
       if (form.ifsc_code) fd.append('ifsc_code', form.ifsc_code)
+      if (form.dob) fd.append('dob', form.dob)
+      if (form.father_name) fd.append('father_name', form.father_name)
 
       if (form.aadhar_img) fd.append('aadhar_img', form.aadhar_img)
       if (form.pan_img) fd.append('pan_img', form.pan_img)
@@ -150,6 +167,7 @@ export default function CustomerReverify() {
       if (res.ok) {
         toast.success('Customer reverified and updated successfully')
         setSelectedCustomer(null)
+        fetchUnverified() // Refresh the list
       } else {
         throw new Error(data.error || 'Update failed')
       }
@@ -160,6 +178,13 @@ export default function CustomerReverify() {
     }
   }
 
+  const filteredCustomers = customers.filter(c => 
+    !searchTerm || 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.pan?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.phone?.includes(searchTerm)
+  )
+
   return (
     <div className="dash-page">
       <AdminSidebar />
@@ -167,150 +192,205 @@ export default function CustomerReverify() {
         <div className="dash-topbar">
           <div>
             <h1 style={{ margin: 0 }}>Customer Reverification</h1>
-            <p style={{ margin: 0, fontSize: 12, color: '#9ca3af' }}>Search and re-verify customer KYC details via APIs</p>
+            <p style={{ margin: 0, fontSize: 12, color: '#9ca3af' }}>Verify via API to fetch and update missing DOB, IFSC, and Father Name</p>
           </div>
         </div>
 
         <div className="dash-main">
           {!selectedCustomer ? (
-            <div className="dash-card">
-              <div className="dash-card-header"><h3>Search Customer</h3></div>
-              <div className="dash-card-body">
-                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-                  <input 
-                    type="text" 
-                    className="dash-input" 
-                    placeholder="Search by Name, PAN, or Phone..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                    style={{ flex: 1, maxWidth: 400 }}
-                  />
-                  <button className="dash-btn dash-btn-primary" onClick={handleSearch} disabled={loading}>
-                    {loading ? 'Searching...' : 'Search'}
-                  </button>
+            <>
+              {/* Summary Dashboard */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                <div 
+                  className={`summary-card ${activeFilter === '' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('')}>
+                  <div className="summary-value">{counts.total_unverified || 0}</div>
+                  <div className="summary-label">Total Missing Details</div>
+                </div>
+                
+                <div 
+                  className={`summary-card ${activeFilter === 'dob' ? 'active-pan' : ''}`}
+                  onClick={() => setActiveFilter('dob')}>
+                  <div className="summary-value danger">{counts.missing_dob || 0}</div>
+                  <div className="summary-label danger">Missing DOB</div>
                 </div>
 
-                {customers.length > 0 && (
+                <div 
+                  className={`summary-card ${activeFilter === 'ifsc' ? 'active-aadhar' : ''}`}
+                  onClick={() => setActiveFilter('ifsc')}>
+                  <div className="summary-value danger">{counts.missing_ifsc || 0}</div>
+                  <div className="summary-label danger">Missing IFSC</div>
+                </div>
+
+                <div 
+                  className={`summary-card ${activeFilter === 'father_name' ? 'active-bank' : ''}`}
+                  onClick={() => setActiveFilter('father_name')}>
+                  <div className="summary-value danger">{counts.missing_father_name || 0}</div>
+                  <div className="summary-label danger">Missing Father Name</div>
+                </div>
+              </div>
+
+              {/* Search & List */}
+              <div className="dash-card">
+                <div className="dash-card-header" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <h3 style={{ margin: 0 }}>Customer List</h3>
+                  <input 
+                    type="text" 
+                    placeholder="Search name, phone, PAN..." 
+                    className="dash-input" 
+                    style={{ maxWidth: 300 }}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className="dash-table-container">
                   <table className="dash-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
+                        <th>Date</th>
                         <th>Name</th>
                         <th>Phone</th>
-                        <th>PAN</th>
                         <th>Status</th>
+                        <th>Missing</th>
                         <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {customers.map(c => (
-                        <tr key={c.id}>
-                          <td style={{ fontFamily: 'monospace' }}>#{c.id}</td>
-                          <td>{c.name}</td>
-                          <td>{c.phone}</td>
-                          <td style={{ fontFamily: 'monospace' }}>{c.pan}</td>
-                          <td><span style={{ fontSize: 11, background: '#f8fafc', padding: '2px 8px', borderRadius: 10 }}>{c.status}</span></td>
-                          <td>
-                            <button className="dash-btn dash-btn-primary dash-btn-sm" onClick={() => selectCustomer(c)}>
-                              Select
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {loading ? (
+                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px' }}>Loading...</td></tr>
+                      ) : filteredCustomers.length === 0 ? (
+                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px' }}>No customers missing details.</td></tr>
+                      ) : (
+                        filteredCustomers.map(c => {
+                          const missing = [];
+                          if (!c.dob) missing.push('DOB');
+                          if (!c.ifsc_code) missing.push('IFSC');
+                          if (!c.father_name) missing.push('Father Name');
+
+                          return (
+                            <tr key={c.id}>
+                              <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                              <td>
+                                <strong>{c.name}</strong><br/>
+                                <span style={{ fontSize: 11, color: '#64748b' }}>{c.pan}</span>
+                              </td>
+                              <td>{c.phone}</td>
+                              <td><span className={`status-badge status-${c.status}`}>{c.status}</span></td>
+                              <td>
+                                <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 12 }}>
+                                  {missing.length > 0 ? missing.join(', ') : 'None'}
+                                </span>
+                              </td>
+                              <td>
+                                <button className="dash-btn" onClick={() => selectCustomer(c)}>Select</button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
-                )}
+                </div>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="dash-card reverify-container">
-              <div className="dash-card-header reverify-header">
-                <h3>Reverifying: {selectedCustomer.name} (#{selectedCustomer.id})</h3>
-                <button className="dash-btn dash-btn-outline dash-btn-sm" onClick={() => setSelectedCustomer(null)}>Cancel</button>
+            <div className="reverify-container">
+              <div className="reverify-header">
+                <h3>Verifying: {selectedCustomer.name} (#{selectedCustomer.id})</h3>
+                <button className="dash-btn dash-btn-outline" onClick={() => setSelectedCustomer(null)}>Cancel</button>
               </div>
-              <div className="dash-card-body">
-                <div className="reverify-grid">
+
+              <div className="reverify-grid">
+
+                {/* PAN Verification */}
+                <div className="reverify-box">
+                  <h4 className="reverify-box-title">PAN Verification (Fetches DOB & Father Name)</h4>
+                  <div className="reverify-input-group">
+                    <input className="reverify-input" value={form.pan || ''} onChange={e => setForm({...form, pan: e.target.value, pan_verified: false})} placeholder="PAN Number" disabled={form.pan_verified} />
+                    <button className="reverify-btn-outline" onClick={verifyPan} disabled={form.pan_verified}>Verify API</button>
+                  </div>
+                  <div>
+                    Status: {form.pan_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
+                  </div>
+                </div>
+
+                {/* Aadhaar Verification */}
+                <div className="reverify-box">
+                  <h4 className="reverify-box-title">Aadhaar Verification</h4>
+                  <div className="reverify-input-group">
+                    <input className="reverify-input" value={form.aadhar || ''} onChange={e => setForm({...form, aadhar: e.target.value, aadhar_verified: false})} placeholder="Aadhaar Number" disabled={form.aadhar_verified} />
+                    <button className="reverify-btn-outline" onClick={sendAadharOtp} disabled={otpSent.aadhar || form.aadhar_verified}>Send OTP</button>
+                  </div>
+                  {otpSent.aadhar && !form.aadhar_verified && (
+                    <div className="reverify-input-group">
+                      <input className="reverify-input" value={otpVal.aadhar} onChange={e => setOtpVal({...otpVal, aadhar: e.target.value})} placeholder="Enter OTP" />
+                      <button className="reverify-btn-outline" onClick={verifyAadharOtp}>Verify OTP</button>
+                    </div>
+                  )}
+                  <div>
+                    Status: {form.aadhar_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
+                  </div>
+                </div>
+
+                {/* Bank Verification */}
+                <div className="reverify-box">
+                  <h4 className="reverify-box-title">Bank Verification</h4>
+                  <div className="reverify-input-group">
+                    <input className="reverify-input" value={form.acc_number || ''} onChange={e => setForm({...form, acc_number: e.target.value, bank_verified: false})} placeholder="Account Number" disabled={form.bank_verified} />
+                  </div>
+                  <div className="reverify-input-group">
+                    <input className="reverify-input" value={form.ifsc_code || ''} onChange={e => setForm({...form, ifsc_code: e.target.value, bank_verified: false})} placeholder="IFSC Code" disabled={form.bank_verified} />
+                    <button className="reverify-btn-outline" onClick={verifyBank} disabled={form.bank_verified}>Verify API</button>
+                  </div>
+                  <div>
+                    Status: {form.bank_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
+                  </div>
+                </div>
+
+                {/* Extracted Details */}
+                <div className="reverify-box" style={{ gridColumn: '1 / -1' }}>
+                  <h4 className="reverify-box-title">Extracted Details (Review before save)</h4>
                   
-                  {/* PAN Verification */}
-                  <div className="reverify-box">
-                    <h4 className="reverify-box-title">PAN Verification</h4>
-                    <div className="reverify-input-group">
-                      <input className="reverify-input" value={form.pan || ''} onChange={e => setForm({...form, pan: e.target.value, pan_verified: false})} placeholder="PAN Number" />
-                      <button className="reverify-btn-outline" onClick={verifyPan}>Verify API</button>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div className="reverify-input-group" style={{ flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Date of Birth (DOB)</label>
+                      <input 
+                        className="reverify-input" 
+                        type="date"
+                        value={form.dob || ''} 
+                        onChange={e => setForm({ ...form, dob: e.target.value })} 
+                      />
                     </div>
-                    <div>
-                      Status: {form.pan_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
+                    
+                    <div className="reverify-input-group" style={{ flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>IFSC Code</label>
+                      <input 
+                        className="reverify-input" 
+                        placeholder="Enter IFSC Code"
+                        value={form.ifsc_code || ''} 
+                        onChange={e => setForm({ ...form, ifsc_code: e.target.value })} 
+                      />
                     </div>
-                  </div>
 
-                  {/* Aadhaar Verification */}
-                  <div className="reverify-box">
-                    <h4 className="reverify-box-title">Aadhaar Verification</h4>
-                    <div className="reverify-input-group">
-                      <input className="reverify-input" value={form.aadhar || ''} onChange={e => setForm({...form, aadhar: e.target.value, aadhar_verified: false})} placeholder="Aadhaar Number" />
-                      <button className="reverify-btn-outline" onClick={sendAadharOtp} disabled={otpSent.aadhar}>Send OTP</button>
-                    </div>
-                    {otpSent.aadhar && (
-                      <div className="reverify-input-group">
-                        <input className="reverify-input" value={otpVal.aadhar} onChange={e => setOtpVal({...otpVal, aadhar: e.target.value})} placeholder="Enter OTP" />
-                        <button className="reverify-btn-outline" onClick={verifyAadharOtp}>Verify OTP</button>
-                      </div>
-                    )}
-                    <div>
-                      Status: {form.aadhar_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
-                    </div>
-                  </div>
-
-                  {/* Bank Verification */}
-                  <div className="reverify-box">
-                    <h4 className="reverify-box-title">Bank Verification</h4>
-                    <div className="reverify-input-group">
-                      <input className="reverify-input" value={form.acc_number || ''} onChange={e => setForm({...form, acc_number: e.target.value, bank_verified: false})} placeholder="Account Number" />
-                    </div>
-                    <div className="reverify-input-group">
-                      <input className="reverify-input" value={form.ifsc_code || ''} onChange={e => setForm({...form, ifsc_code: e.target.value, bank_verified: false})} placeholder="IFSC Code (Required for API)" />
-                      <button className="reverify-btn-outline" onClick={verifyBank}>Verify API</button>
-                    </div>
-                    <div>
-                      Status: {form.bank_verified ? <span className="reverify-status status-verified">✅ Verified API</span> : <span className="reverify-status status-pending">⏳ Pending</span>}
-                    </div>
-                  </div>
-
-                  {/* Basic Info Update */}
-                  <div className="reverify-box">
-                    <h4 className="reverify-box-title">Contact Details</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <input className="reverify-input" value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} placeholder="Mobile Number" />
-                      <input className="reverify-input" value={form.email || ''} onChange={e => setForm({...form, email: e.target.value})} placeholder="Email Address" />
+                    <div className="reverify-input-group" style={{ flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Father Name</label>
+                      <input 
+                        className="reverify-input" 
+                        placeholder="Enter Father Name"
+                        value={form.father_name || ''} 
+                        onChange={e => setForm({ ...form, father_name: e.target.value })} 
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Document Uploads */}
-                <div className="reverify-docs-section">
-                  <h4 className="reverify-box-title" style={{ marginBottom: '20px' }}>Update Documents (Optional)</h4>
-                  <div className="reverify-docs-grid">
-                    <div className="reverify-file-upload">
-                      <label className="reverify-file-label">New Aadhaar Image</label>
-                      <input type="file" className="reverify-file-input" onChange={e => setForm({...form, aadhar_img: e.target.files[0]})} />
-                    </div>
-                    <div className="reverify-file-upload">
-                      <label className="reverify-file-label">New PAN Image</label>
-                      <input type="file" className="reverify-file-input" onChange={e => setForm({...form, pan_img: e.target.files[0]})} />
-                    </div>
-                    <div className="reverify-file-upload">
-                      <label className="reverify-file-label">New Profile Image</label>
-                      <input type="file" className="reverify-file-input" onChange={e => setForm({...form, profile_image: e.target.files[0]})} />
-                    </div>
-                  </div>
-                </div>
+              </div>
 
-                <div className="reverify-save-action">
-                  <button className="reverify-save-btn" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving Updates...' : 'Save Re-verification Data'}
-                  </button>
-                </div>
+              <div className="reverify-save-action">
+                <button className="reverify-save-btn" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving Details...' : 'Save Verified Details'}
+                </button>
               </div>
             </div>
           )}

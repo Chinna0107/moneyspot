@@ -44,6 +44,7 @@ const NAV = [
     items: [
       { to: '/admin/employees',    icon: <MdPeople />,       label: 'Employee Details' },
       { to: '/admin/performance',  icon: <MdBarChart />,     label: 'Performance' },
+      { to: '/admin/employee-onboarding', icon: <MdPeople />,label: 'Onboarding Stats' },
       { to: '/admin/attendance',   icon: <MdFactCheck />,    label: 'Attendance' },
       { to: '/admin/assign-targets', icon: <MdTrackChanges />, label: 'Assign Targets' },
       { to: '/admin/create-employee', icon: <MdPersonAdd />, label: 'Create Employee' },

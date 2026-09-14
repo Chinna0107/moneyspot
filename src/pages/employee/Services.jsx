@@ -29,7 +29,7 @@ const emptyForm = {
   bill_platform: '', bill_amount: '', bill_remaining: '', total_collected: '', received_mode: '',
   platform: '', card: '', card_bank: '', card_last4: '', payment_mode: '', amount: '',
   charges_pct: '', charges_amount: '', settled_amount: '',
-  bank: '', acc_no: '', bill_due_date: '',
+  bank: '', acc_no: '', bill_due_date: '', customer_card_id: '', card_due_day: ''
 }
 
 export default function Services() {
@@ -38,6 +38,7 @@ export default function Services() {
   const [customers, setCustomers] = useState([])
   const [form, setForm]           = useState(emptyForm)
   const [saving, setSaving]       = useState(false)
+  const [savingCard, setSavingCard] = useState(false)
   const [msg, setMsg]             = useState('')
   const [error, setError]         = useState('')
   const [history, setHistory]     = useState([])
@@ -54,6 +55,7 @@ export default function Services() {
   const [attFetched, setAttFetched]   = useState(false)
   const [checkingIn, setCheckingIn]   = useState(false)
   const [currentUser, setCurrentUser] = useState(getUserByRole('employee') || getUserByRole('admin'))
+  const [bypassKyc, setBypassKyc]     = useState(false)
 
   const { lookup } = useCharges()
 
@@ -193,14 +195,15 @@ export default function Services() {
     setSearch(c.name)
     setLoadingProfile(true)
     try {
-      const [profile, txns, pendingData] = await Promise.all([
+      const [profile, txns, pendingData, cardsData] = await Promise.all([
         api(`/customers/${c.id}`, { headers: auth() }),
         api(`/master/transactions?customer_id=${c.id}`, { headers: auth() }).catch(() => []),
         api(`/collections/customer-balance?customer_id=${c.id}&cust_mobile=${encodeURIComponent(c.phone || '')}`, { headers: auth() }).catch(() => ({ pending_count: 0, total_remaining: 0, entries: [] })),
+        api(`/customers/${c.id}/cards`, { headers: auth() }).catch(() => []),
       ])
-      setCustomerProfile({ ...profile, transactions: Array.isArray(txns) ? txns : [], pendingData })
+      setCustomerProfile({ ...profile, transactions: Array.isArray(txns) ? txns : [], pendingData, customer_cards: Array.isArray(cardsData) ? cardsData : [] })
     } catch {
-      setCustomerProfile({ ...c, transactions: [], pendingData: { pending_count: 0, total_remaining: 0, entries: [] } })
+      setCustomerProfile({ ...c, transactions: [], pendingData: { pending_count: 0, total_remaining: 0, entries: [] }, customer_cards: [] })
     }
     setLoadingProfile(false)
   }
@@ -229,8 +232,39 @@ export default function Services() {
     return () => clearTimeout(t)
   }, [search, form.customer_id])
 
+  const handleSaveNewCard = async () => {
+    if (!form.card_bank || !form.card_last4 || !form.card_due_day) {
+      return setError('Please enter Card Bank, Last 4 Digits, and Billing Day to save.')
+    }
+    setSavingCard(true)
+    setError('')
+    try {
+      const res = await api(`/customers/${customerProfile.id}/cards`, {
+        method: 'POST',
+        headers: auth(),
+        body: JSON.stringify({ bank_name: form.card_bank, last_4_digits: form.card_last4, due_date_day: form.card_due_day })
+      })
+      setCustomerProfile(prev => ({
+        ...prev,
+        customer_cards: [res, ...(prev.customer_cards || [])]
+      }))
+      setForm(f => ({ ...f, customer_card_id: res.id, card_due_day: '' }))
+      setMsg('Card saved successfully!')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingCard(false)
+    }
+  }
+
   const handleSubmit = async e => {
     e.preventDefault()
+    const isBillWd = form.service_type === 'Bill Pay + Withdrawal'
+    const isCardWd = form.service_type === 'Card Withdrawal'
+    if ((isBillWd || isCardWd) && !form.customer_card_id) {
+      setError('Please save and select a customer card before submitting the transaction.')
+      return
+    }
     if (!form.cust_name.trim()) { setError('Customer name is required'); return }
     setSaving(true); setMsg(''); setError('')
     try {
@@ -416,19 +450,39 @@ export default function Services() {
               const isLegacy = customerProfile && (!isPan || !isAadhaar || !isBank);
 
               if (isLegacy && custMode === 'search') {
-                return (
-                  <div style={{ marginTop: 24, padding: 32, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 16, textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🛑</div>
-                    <h2 style={{ color: '#991b1b', marginBottom: 12, fontSize: 22, fontWeight: 800 }}>API Reverification Required</h2>
-                    <p style={{ color: '#b91c1c', fontSize: 15, lineHeight: 1.6, maxWidth: 500, margin: '0 auto' }}>
-                      This customer requires API Reverification. Please proceed with KYC first using the <strong>Re-Verify Now</strong> button in their profile above before processing any new transactions.
-                    </p>
-                  </div>
-                )
+                if (!bypassKyc) {
+                  return (
+                    <div style={{ marginTop: 24, padding: 32, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 16, textAlign: 'center' }}>
+                      <div style={{ fontSize: 48, marginBottom: 16 }}>🛑</div>
+                      <h2 style={{ color: '#991b1b', marginBottom: 12, fontSize: 22, fontWeight: 800 }}>API Reverification Required</h2>
+                      <p style={{ color: '#b91c1c', fontSize: 15, lineHeight: 1.6, maxWidth: 500, margin: '0 auto' }}>
+                        This customer requires API Reverification. Please proceed with KYC first using the <strong>Re-Verify Now</strong> button in their profile above before processing any new transactions.
+                      </p>
+                      <div style={{ marginTop: 24 }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: '#991b1b', fontWeight: 600, fontSize: 14, background: '#fff', padding: '8px 16px', borderRadius: 8, border: '1px solid #fecaca' }}>
+                          <input type="checkbox" checked={bypassKyc} onChange={e => setBypassKyc(e.target.checked)} />
+                          Bypass KYC Check (Emergency Only)
+                        </label>
+                      </div>
+                    </div>
+                  )
+                }
               }
 
               return (
                 <>
+                  {isLegacy && custMode === 'search' && bypassKyc && (
+                    <div style={{ marginBottom: 24, padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12, color: '#b45309' }}>
+                      <MdWarning size={24} />
+                      <div style={{ flex: 1, fontSize: 14 }}>
+                        <strong>Bypassed:</strong> This customer's KYC is incomplete. Transaction allowed via emergency bypass.
+                      </div>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        <input type="checkbox" checked={bypassKyc} onChange={e => setBypassKyc(e.target.checked)} />
+                        Revoke Bypass
+                      </label>
+                    </div>
+                  )}
                   <form onSubmit={handleSubmit}>
 
                   {/* ── Service Type — show only after customer selected ── */}
@@ -469,14 +523,59 @@ export default function Services() {
                     <div className="dash-card-body">
                       <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>Please fill all information below</p>
                       <div className="dash-form-grid">
+                        {customerProfile && (
+                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1' }}>
+                            <label style={{ color: '#0f172a' }}>Saved Cards</label>
+                            <select onChange={e => {
+                              const selCard = customerProfile.customer_cards.find(c => c.id === parseInt(e.target.value));
+                              if (selCard) {
+                                let newDueDate = '';
+                                if (selCard.due_date_day) {
+                                  const today = new Date();
+                                  let target = new Date(today.getFullYear(), today.getMonth(), selCard.due_date_day);
+                                  if (target < today) target.setMonth(target.getMonth() + 1);
+                                  const y = target.getFullYear(), m = String(target.getMonth() + 1).padStart(2, '0'), d = String(target.getDate()).padStart(2, '0');
+                                  newDueDate = `${y}-${m}-${d}`;
+                                }
+                                setForm(f => ({ ...f, card_bank: selCard.bank_name, card_last4: selCard.last_4_digits, customer_card_id: selCard.id, bill_due_date: newDueDate || f.bill_due_date }));
+                              }
+                              else setForm(f => ({ ...f, customer_card_id: '' }));
+                            }} value={form.customer_card_id || ''}>
+                              {customerProfile.customer_cards?.length > 0 ? (
+                                <>
+                                  <option value="">+ Add a New Card (Enter details below)</option>
+                                  {customerProfile.customer_cards.map(c => (
+                                    <option key={c.id} value={c.id}>{c.bank_name} - **** {c.last_4_digits}</option>
+                                  ))}
+                                </>
+                              ) : (
+                                <option value="">+ Add a New Card</option>
+                              )}
+                            </select>
+
+                            {!form.customer_card_id && (
+                              <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#334155' }}>Enter New Card Details</h4>
+                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                  {fg('Card Bank', sel('card_bank', banks))}
+                                  {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
+                                  {fg('Billing Day (1-31)', <input type="number" min="1" max="31" placeholder="e.g. 5" value={form.card_due_day} onChange={e => set('card_due_day', e.target.value)} />)}
+                                </div>
+                                <div style={{ marginTop: 12 }}>
+                                  <button type="button" onClick={handleSaveNewCard} disabled={savingCard} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: savingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>
+                                    {savingCard ? 'Saving...' : 'Save Card'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {fg('Bill Payment Platform', sel('bill_platform', platforms))}
                         {fg('Bill Paid Amount (₹)', inp('bill_amount', '₹', 'number'))}
                         {fg('Bill Due Date', <input type="date" value={form.bill_due_date} onChange={e => set('bill_due_date', e.target.value)} />)}
                         {fg('Withdrawal Platform', sel('platform', platforms))}
                         {fg('Card Type', sel('card', cards))}
                         {fg('Withdrawal Amount (₹)', <input required type="number" placeholder="₹" value={form.amount} onChange={e => set('amount', e.target.value)} />)}
-                        {fg('Card Bank', sel('card_bank', banks))}
-                        {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
                         {fg('Charges %', roInp('charges_pct'))}
                         {fg('Charges Amount (₹)', roInp('charges_amount', '#555'))}
                         {fg('Bill Payment Remaining Balance (₹)', roInp('bill_remaining', '#555'))}
@@ -495,10 +594,55 @@ export default function Services() {
                     <div className="dash-card-body">
                       <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>Please fill all information below</p>
                       <div className="dash-form-grid">
+                        {customerProfile && (
+                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1' }}>
+                            <label style={{ color: '#0f172a' }}>Saved Cards</label>
+                            <select onChange={e => {
+                              const selCard = customerProfile.customer_cards.find(c => c.id === parseInt(e.target.value));
+                              if (selCard) {
+                                let newDueDate = '';
+                                if (selCard.due_date_day) {
+                                  const today = new Date();
+                                  let target = new Date(today.getFullYear(), today.getMonth(), selCard.due_date_day);
+                                  if (target < today) target.setMonth(target.getMonth() + 1);
+                                  const y = target.getFullYear(), m = String(target.getMonth() + 1).padStart(2, '0'), d = String(target.getDate()).padStart(2, '0');
+                                  newDueDate = `${y}-${m}-${d}`;
+                                }
+                                setForm(f => ({ ...f, card_bank: selCard.bank_name, card_last4: selCard.last_4_digits, customer_card_id: selCard.id, bill_due_date: newDueDate || f.bill_due_date }));
+                              }
+                              else setForm(f => ({ ...f, customer_card_id: '' }));
+                            }} value={form.customer_card_id || ''}>
+                              {customerProfile.customer_cards?.length > 0 ? (
+                                <>
+                                  <option value="">+ Add a New Card (Enter details below)</option>
+                                  {customerProfile.customer_cards.map(c => (
+                                    <option key={c.id} value={c.id}>{c.bank_name} - **** {c.last_4_digits}</option>
+                                  ))}
+                                </>
+                              ) : (
+                                <option value="">+ Add a New Card</option>
+                              )}
+                            </select>
+
+                            {!form.customer_card_id && (
+                              <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#334155' }}>Enter New Card Details</h4>
+                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                  {fg('Card Bank', sel('card_bank', banks))}
+                                  {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
+                                  {fg('Billing Day (1-31)', <input type="number" min="1" max="31" placeholder="e.g. 5" value={form.card_due_day} onChange={e => set('card_due_day', e.target.value)} />)}
+                                </div>
+                                <div style={{ marginTop: 12 }}>
+                                  <button type="button" onClick={handleSaveNewCard} disabled={savingCard} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: savingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>
+                                    {savingCard ? 'Saving...' : 'Save Card'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {fg('Platform', sel('platform', platforms))}
                         {fg('Card Type', sel('card', cards))}
-                        {fg('Card Bank', sel('card_bank', banks))}
-                        {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
                         {fg('Payment Mode', sel('payment_mode', paymentModes))}
                         {fg('Total Amount (₹) *', <input required type="number" placeholder="₹" value={form.amount} onChange={e => set('amount', e.target.value)} />)}
                         {fg('Remarks', inp('note', 'Remarks'), true)}
@@ -552,7 +696,7 @@ export default function Services() {
                   </div>
                 )}
 
-                {(form.amount || form.total_collected) && svcType && form.cust_name && (
+                {/* {(form.amount || form.total_collected) && svcType && form.cust_name && (
                   <div className="dash-card" style={{ marginBottom: 16 }}>
                     <div className="dash-card-header"><h2>💰 Summary</h2></div>
                     <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
@@ -569,7 +713,7 @@ export default function Services() {
                       </>}
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {svcType && (
                   <button type="submit" className="dash-btn dash-btn-primary"

@@ -39,12 +39,12 @@ const NOW_MONTH = String(new Date().getMonth() + 1).padStart(2, '0')
 const NOW_YEAR  = String(new Date().getFullYear())
 
 export function useSuperAdminDashboard() {
-  const { data, loading, revalidating } = useSWR(
+  const { data, loading, revalidating, refetch } = useSWR(
     'sa:dashboard',
     () => api('/dashboard/superadmin', { headers: authHeaders() }),
     TTL.dashboard
   )
-  return { data, loading, revalidating }
+  return { data, loading, revalidating, refetch }
 }
 
 export function useDashboardStats() {

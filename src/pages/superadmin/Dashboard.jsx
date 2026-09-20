@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../../components/superadmin/Sidebar'
 import { useDashboardStats } from '../../hooks/useSuperAdmin'
-import { getUserByRole } from '../../utils/tokenUtils'
+import { getUserByRole, getTokenByRole } from '../../utils/tokenUtils'
+import { api } from '../../utils/api'
+import { cacheGet } from '../../utils/cache'
 import { SkeletonStats, SkeletonTable, SkeletonRows } from '../../components/superadmin/Skeleton'
 import {
   MdTrendingUp, MdAccountBalanceWallet, MdMonetizationOn,
@@ -9,6 +11,7 @@ import {
 } from 'react-icons/md'
 import './Dashboard.css'
 
+const auth = () => ({ Authorization: `Bearer ${getTokenByRole('superadmin')}` })
 const fmt = (n) => Number(n).toLocaleString('en-IN')
 const fmtVal = (n) => {
   const v = parseFloat(n)
@@ -53,9 +56,7 @@ function Skel({ h = 20 }) {
 }
 
 export default function SuperAdminDashboard() {
-  const CACHE_KEY = 'superadmin_stats'
-  const [data, setData]       = useState(() => cacheGet(CACHE_KEY))
-  const [loading, setLoading] = useState(!cacheGet(CACHE_KEY))
+  const { stats: data, loading, refetch: dashboardRefetch } = useDashboardStats()
   const user = getUserByRole('superadmin')
 
   // Performance Section States
@@ -78,7 +79,10 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => { loadPerf() }, [loadPerf])
 
-  const refetch = useCallback((force = false) => {}, [])
+  const refetch = useCallback((force = false) => {
+    dashboardRefetch(force)
+    loadPerf()
+  }, [dashboardRefetch, loadPerf])
   const d         = data           ?? {}
   const s         = d?.stats       ?? {}
   const platforms = d?.platforms   ?? []

@@ -161,7 +161,11 @@ export default function AdminDueDates() {
                         <td>
                           <div style={{ fontWeight: 700 }}>{d.cust_name}</div>
                           <div style={{ fontSize: 11, color: '#64748b' }}>{d.cust_mobile}</div>
-                          {d.is_card && <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2 }}>Card: {d.bank_name} - {d.last_4_digits}</div>}
+                          {(d.card_bank || d.card_last4) && (
+                            <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: 600 }}>
+                              💳 {d.card_bank ? `${d.card_bank} ` : ''}{d.card_last4 ? `• **** ${d.card_last4}` : ''}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
@@ -169,29 +173,38 @@ export default function AdminDueDates() {
                               {tier.label.toUpperCase()}
                             </span>
                             <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-                              {d.category || (d.is_card ? 'Credit Card' : 'General')}
+                              {d.category || 'Bill Pay + Withdrawal'}
                             </span>
                           </div>
                         </td>
-                        <td style={{ fontWeight: 700 }}>
-                          {d.is_card && !d.bill_amount ? <span style={{color: '#64748b'}}>Amount Unknown</span> : `₹${d.bill_amount} ${d.is_card ? '(Est.)' : ''}`}
+                        <td style={{ fontWeight: 700, color: '#0f172a' }}>
+                          ₹{Number(d.bill_amount || 0).toLocaleString('en-IN')}
                         </td>
                         <td>
                           <div style={{ fontWeight: 700, color: '#374151' }}>
                             {new Date(d.bill_due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </div>
-                          <span style={{
-                            display: 'inline-block', marginTop: 4,
-                            fontSize: 11, fontWeight: 700, padding: '2px 8px',
-                            borderRadius: 6, background: badge.bg, color: badge.color
-                          }}>
-                            {badge.label}
-                          </span>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                              borderRadius: 6, background: badge.bg, color: badge.color
+                            }}>
+                              {badge.label}
+                            </span>
+                            {d.due_day && (
+                              <span style={{
+                                fontSize: 10, fontWeight: 600, padding: '2px 6px',
+                                borderRadius: 4, background: '#eff6ff', color: '#1d4ed8'
+                              }}>
+                                🔄 Monthly on {d.due_day}{['th','st','nd','rd'][(d.due_day % 10 > 3 || Math.floor((d.due_day % 100) / 10) === 1) ? 0 : d.due_day % 10]}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>{d.added_by}</div>
                           <div style={{ fontSize: 11, color: '#6b7280' }}>
-                            {d.is_card ? 'Recurring' : (d.created_at ? getShowAfterDate(d.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')}
+                            {d.created_at ? getShowAfterDate(d.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                           </div>
                         </td>
                         <td>

@@ -81,7 +81,12 @@ export default function SuperAdminDueDates() {
     window.open(`https://wa.me/91${item.cust_mobile}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
+
   const filtered = getFilteredData();
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const controlStyle = {
     padding: '8px 12px', borderRadius: 8, border: '1.5px solid rgba(64,32,112,0.2)', fontSize: 13
@@ -93,20 +98,20 @@ export default function SuperAdminDueDates() {
       <div className="dash-content">
         <div className="dash-topbar" style={{ padding: '20px 30px' }}>
           <h1 className="dash-topbar-title">Bill Due Dates</h1>
-          <p className="dash-topbar-sub">View and notify upcoming bill due dates across all branches</p>
+          <p className="dash-topbar-sub">View and notify upcoming bill due dates across all branches ({filtered.length} total)</p>
         </div>
 
         <div style={{ padding: '0 30px 30px' }}>
           {/* Controls */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select style={controlStyle} value={filter} onChange={e => setFilter(e.target.value)}>
+            <select style={controlStyle} value={filter} onChange={e => { setFilter(e.target.value); setCurrentPage(1); }}>
               <option value="all">All Upcoming</option>
               <option value="today">Due Today</option>
               <option value="tomorrow">Due Tomorrow</option>
               <option value="custom">Custom Date</option>
             </select>
             {filter === 'custom' && (
-              <input type="date" style={controlStyle} value={customDate} onChange={e => setCustomDate(e.target.value)} />
+              <input type="date" style={controlStyle} value={customDate} onChange={e => { setCustomDate(e.target.value); setCurrentPage(1); }} />
             )}
 
             <label style={{
@@ -117,7 +122,7 @@ export default function SuperAdminDueDates() {
               <input
                 type="checkbox"
                 checked={show30DayRule}
-                onChange={e => setShow30DayRule(e.target.checked)}
+                onChange={e => { setShow30DayRule(e.target.checked); setCurrentPage(1); }}
                 style={{ display: 'none' }}
               />
               <span style={{ fontSize: 16 }}>{show30DayRule ? '✅' : '⬜'}</span>
@@ -136,84 +141,126 @@ export default function SuperAdminDueDates() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading bill due dates...</div>
           ) : (
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Category</th>
-                  <th>Bill Amount</th>
-                  <th>Due Date</th>
-                  <th>Added By</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length > 0 ? filtered.map(d => {
-                  const dueDays = daysUntilDue(d.bill_due_date);
-                  const badge = getDueBadge(dueDays);
-                  const tier = getCustomerTier(d.customer_total_amount || 0);
-                  
-                  return (
-                    <tr key={d.id}>
-                      <td>
-                        <div style={{ fontWeight: 700 }}>{d.cust_name}</div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>{d.cust_mobile}</div>
-                        {d.is_card && <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2 }}>Card: {d.bank_name} - {d.last_4_digits}</div>}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                          <span style={{ background: tier.bg, color: tier.color, padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 800 }}>
-                            {tier.label.toUpperCase()}
-                          </span>
-                          <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-                            {d.category || (d.is_card ? 'Credit Card' : 'General')}
-                          </span>
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 700 }}>
-                        {d.is_card && !d.bill_amount ? <span style={{color: '#64748b'}}>Amount Unknown</span> : `₹${d.bill_amount} ${d.is_card ? '(Est.)' : ''}`}
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 700, color: '#374151' }}>
-                          {new Date(d.bill_due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                        <span style={{
-                          display: 'inline-block', marginTop: 4,
-                          fontSize: 11, fontWeight: 700, padding: '2px 8px',
-                          borderRadius: 6, background: badge.bg, color: badge.color
-                        }}>
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{d.added_by}</div>
-                        <div style={{ fontSize: 11, color: '#6b7280' }}>
-                          {d.is_card ? 'Recurring' : (d.created_at ? getShowAfterDate(d.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')}
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => notifyWhatsapp(d)}
-                          style={{ background: '#25D366', color: 'white', padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}
-                        >
-                          📲 Notify
-                        </button>
+            <>
+              <table className="dash-table">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Category</th>
+                    <th>Bill Amount</th>
+                    <th>Due Date</th>
+                    <th>Added By</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.length > 0 ? paginated.map(d => {
+                    const dueDays = daysUntilDue(d.bill_due_date);
+                    const badge = getDueBadge(dueDays);
+                    const tier = getCustomerTier(d.customer_total_amount || 0);
+                    
+                    return (
+                      <tr key={d.id}>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{d.cust_name}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{d.cust_mobile}</div>
+                          {(d.card_bank || d.card_last4) && (
+                            <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: 600 }}>
+                              💳 {d.card_bank ? `${d.card_bank} ` : ''}{d.card_last4 ? `• **** ${d.card_last4}` : ''}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            <span style={{ background: tier.bg, color: tier.color, padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 800 }}>
+                              {tier.label}
+                            </span>
+                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                              {d.category || 'Bill Pay + Withdrawal'}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 700, color: '#0f172a' }}>
+                          ₹{Number(d.bill_amount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#374151' }}>
+                            {new Date(d.bill_due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                              borderRadius: 6, background: badge.bg, color: badge.color
+                            }}>
+                              {badge.label}
+                            </span>
+                            {d.due_day && (
+                              <span style={{
+                                fontSize: 10, fontWeight: 600, padding: '2px 6px',
+                                borderRadius: 4, background: '#eff6ff', color: '#1d4ed8'
+                              }}>
+                                🔄 Monthly on {d.due_day}{['th','st','nd','rd'][(d.due_day % 10 > 3 || Math.floor((d.due_day % 100) / 10) === 1) ? 0 : d.due_day % 10]}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{d.added_by}</div>
+                          <div style={{ fontSize: 11, color: '#6b7280' }}>
+                            {d.branch || '—'}
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => notifyWhatsapp(d)}
+                            style={{ background: '#25D366', color: 'white', padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}
+                          >
+                            📲 Notify
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: 30, color: '#94a3b8' }}>
+                        {show30DayRule
+                          ? 'No bills are eligible yet (30-day rule). Uncheck the rule to see all.'
+                          : 'No due dates found.'}
                       </td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: 30, color: '#94a3b8' }}>
-                      {show30DayRule
-                        ? 'No bills are eligible yet (30-day rule). Uncheck the rule to see all.'
-                        : 'No due dates found.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <span style={{ fontSize: 13, color: '#64748b' }}>
+                    Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}
+                  </span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(p => p - 1)}
+                      style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    >
+                      Previous
+                    </button>
+                    <span style={{ padding: '6px 12px', fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #cbd5e1', background: currentPage === totalPages ? '#f1f5f9' : '#fff', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
+import { useEmployeeDashboard } from '../../hooks/useEmployeeDashboardStore'
 import { MdLogin, MdLogout, MdRefresh, MdTrendingUp, MdTrendingDown, MdAccountBalanceWallet, MdMonetizationOn, MdStar, MdPeople, MdPersonAdd, MdPerson } from 'react-icons/md'
 import './EmployeeDashboard.css'
 
@@ -84,8 +85,7 @@ const DonutChart = ({ pct, title, subtitle, color, isZero }) => {
 }
 
 export default function EmployeeDashboard() {
-  const [data, setData]           = useState(null)
-  const [loading, setLoading]     = useState(true)
+  const { data, loading, forceRefresh } = useEmployeeDashboard()
   const [attMsg, setAttMsg]       = useState('')
   const [attErr, setAttErr]       = useState('')
   const [attLoading, setAttLoading] = useState(false)
@@ -98,30 +98,17 @@ export default function EmployeeDashboard() {
     setGreeting(h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening')
   }, [])
 
-  const refetch = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [d, t, p, cRes, dueRes] = await Promise.all([
-        api('/dashboard/employee/stats', { headers: auth() }),
-        api('/dashboard/employee/target', { headers: auth() }),
-        api('/dashboard/pending-payments', { headers: auth() }).catch(() => []),
-        api('/customers/my', { headers: auth() }).catch(() => []),
-        api('/dashboard/bill-due-dates/employee', { headers: auth() }).catch(() => [])
-      ])
-      setData({ ...d, targets: t, pendingPayments: p, customers: cRes, dueDates: dueRes })
-      setTargetData(t)
-    } catch (e) {}
-    setLoading(false)
-  }, [])
+  // sync targetData when store data arrives
+  useEffect(() => { if (data?.targets) setTargetData(data.targets) }, [data?.targets])
 
-  useEffect(() => { refetch() }, [refetch])
+  const refetch = forceRefresh
 
   const markAttendance = async type => {
     setAttLoading(true); setAttMsg(''); setAttErr('')
     try {
       const r = await api('/dashboard/attendance/mark', { method: 'POST', headers: auth(), body: JSON.stringify({ type }) })
       setAttMsg(r.coinsEarned > 0 ? `${r.message} 🪙 +${r.coinsEarned} coins!` : r.message)
-      refetch()
+      forceRefresh()
     } catch (e) { setAttErr(e.message) }
     setAttLoading(false)
   }
@@ -131,63 +118,57 @@ export default function EmployeeDashboard() {
   const txns    = data?.transactions ?? []
   const att     = data?.attendance  ?? null
 
-  // --- Calculations for Modules ---
-  const pending = Array.isArray(data?.pendingPayments) ? data.pendingPayments : []
-  let outTotal = 0, outCusts = new Set(), out0_30 = 0, out31_60 = 0, out61_90 = 0, out90Plus = 0
-  pending.forEach(p => {
-    const amt = parseFloat(p.pending_amount) || 0
-    outTotal += amt
-    outCusts.add(p.customer_id || p.cust_mobile)
-    const days = (new Date() - new Date(p.created_at)) / (1000 * 60 * 60 * 24)
-    if (days <= 30) out0_30 += amt
-    else if (days <= 60) out31_60 += amt
-    else if (days <= 90) out61_90 += amt
-    else out90Plus += amt
-  })
+  // --- Calculations for Modules (memoized to avoid re-running on every render) ---
+  const pendingStats = useMemo(() => {
+    const pending = Array.isArray(data?.pendingPayments) ? data.pendingPayments : []
+    let outTotal = 0, outCusts = new Set(), out0_30 = 0, out31_60 = 0, out61_90 = 0, out90Plus = 0
+    pending.forEach(p => {
+      const amt = parseFloat(p.pending_amount) || 0
+      outTotal += amt
+      outCusts.add(p.customer_id || p.cust_mobile)
+      const days = (new Date() - new Date(p.created_at)) / (1000 * 60 * 60 * 24)
+      if (days <= 30) out0_30 += amt
+      else if (days <= 60) out31_60 += amt
+      else if (days <= 90) out61_90 += amt
+      else out90Plus += amt
+    })
+    return { outTotal, outCusts, out0_30, out31_60, out61_90, out90Plus }
+  }, [data?.pendingPayments])
 
-  const customers = Array.isArray(data?.customers) ? data.customers : []
-  let ret35Count = 0, ret60Count = 0, ret90Count = 0
-  let atRiskRev = 0
-  customers.forEach(c => {
-    const lastTxnDate = new Date(c.last_txn_date || c.created_at)
-    const days = (new Date() - lastTxnDate) / (1000 * 60 * 60 * 24)
-    if (days >= 35 && days < 60) {
-      ret35Count++
-      atRiskRev += parseFloat(c.total_amount) || 0
-    } else if (days >= 60 && days < 90) {
-      ret60Count++
-      atRiskRev += parseFloat(c.total_amount) || 0
-    } else if (days >= 90) {
-      ret90Count++
-      atRiskRev += parseFloat(c.total_amount) || 0
-    }
-  })
+  const retentionStats = useMemo(() => {
+    const customers = Array.isArray(data?.customers) ? data.customers : []
+    let ret35Count = 0, ret60Count = 0, ret90Count = 0, atRiskRev = 0
+    customers.forEach(c => {
+      const lastTxnDate = new Date(c.last_txn_date || c.created_at)
+      const days = (new Date() - lastTxnDate) / (1000 * 60 * 60 * 24)
+      if (days >= 35 && days < 60) { ret35Count++; atRiskRev += parseFloat(c.total_amount) || 0 }
+      else if (days >= 60 && days < 90) { ret60Count++; atRiskRev += parseFloat(c.total_amount) || 0 }
+      else if (days >= 90) { ret90Count++; atRiskRev += parseFloat(c.total_amount) || 0 }
+    })
+    return { ret35Count, ret60Count, ret90Count, atRiskRev }
+  }, [data?.customers])
 
-  const dueDates = Array.isArray(data?.dueDates) ? data.dueDates : []
-  let dueToday = 0, due3Days = 0, due7Days = 0
-  let amtToday = 0, amt3Days = 0, amt7Days = 0
-  let potentialTotal = 0
-  
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
+  const dueStats = useMemo(() => {
+    const dueDates = Array.isArray(data?.dueDates) ? data.dueDates : []
+    let dueToday = 0, due3Days = 0, due7Days = 0
+    let amtToday = 0, amt3Days = 0, amt7Days = 0, potentialTotal = 0
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    dueDates.forEach(d => {
+      const dueD = new Date(d.bill_due_date)
+      const diffDays = Math.ceil((dueD - todayStart) / (1000 * 60 * 60 * 24))
+      const amt = parseFloat(d.bill_amount) || 0
+      potentialTotal += amt
+      if (diffDays === 0) { dueToday++; amtToday += amt }
+      else if (diffDays > 0 && diffDays <= 3) { due3Days++; amt3Days += amt }
+      else if (diffDays > 3 && diffDays <= 7) { due7Days++; amt7Days += amt }
+    })
+    return { dueToday, due3Days, due7Days, amtToday, amt3Days, amt7Days, potentialTotal }
+  }, [data?.dueDates])
 
-  dueDates.forEach(d => {
-    const dueD = new Date(d.bill_due_date)
-    const diffDays = Math.ceil((dueD - todayStart) / (1000 * 60 * 60 * 24))
-    const amt = parseFloat(d.bill_amount) || 0
-    potentialTotal += amt
-
-    if (diffDays === 0) {
-      dueToday++
-      amtToday += amt
-    } else if (diffDays > 0 && diffDays <= 3) {
-      due3Days++
-      amt3Days += amt
-    } else if (diffDays > 3 && diffDays <= 7) {
-      due7Days++
-      amt7Days += amt
-    }
-  })
+  const { outTotal, outCusts, out0_30, out31_60, out61_90, out90Plus } = pendingStats
+  const { ret35Count, ret60Count, ret90Count, atRiskRev } = retentionStats
+  const { dueToday, due3Days, due7Days, amtToday, amt3Days, amt7Days, potentialTotal } = dueStats
 
   const dailyTarget = targetData?.daily?.target || 0
   const dailyAchieved = targetData?.daily?.achieved || 0

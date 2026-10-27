@@ -360,6 +360,30 @@
   color: #0f172a;
 }
 
+/* Side by side split view for Card & Bank */
+.cqv-doc-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.cqv-split-half {
+  display: flex;
+  flex-direction: column;
+}
+
+.cqv-split-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
 /* Col 3: Financial */
 .cqv-pending-box {
   background: #fef2f2;

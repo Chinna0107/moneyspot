@@ -61,6 +61,7 @@ import AdminSidebar from './components/admin/AdminSidebar';
 
 import EmployeeDueDates from './pages/employee/BillDueDates';
 import EmployeeVerifications from './pages/employee/Verifications';
+import { EmployeeDashboardProvider } from './hooks/useEmployeeDashboardStore';
 
 export default function AppRoutes() {
   return (
@@ -108,16 +109,24 @@ export default function AppRoutes() {
       <Route path="/admin/attendance"      element={<AdminRoute><EmployeeAttendance /></AdminRoute>} />
       <Route path="/admin/notifications"   element={<AdminRoute><AdminNotifications /></AdminRoute>} />
 
-      {/* Employee Routes */}
-      <Route path="/employee/dashboard"    element={<EmployeeRoute><EmployeeDashboard /></EmployeeRoute>} />
-      <Route path="/employee/customer-info" element={<EmployeeRoute><CustomerInfo /></EmployeeRoute>} />
-      <Route path="/employee/add-customer" element={<EmployeeRoute><AddCustomer /></EmployeeRoute>} />
-      <Route path="/employee/services"     element={<EmployeeRoute><Services /></EmployeeRoute>} />
-      <Route path="/employee/verifications" element={<EmployeeRoute><EmployeeVerifications /></EmployeeRoute>} />
-      <Route path="/employee/due-dates"    element={<EmployeeRoute><EmployeeDueDates /></EmployeeRoute>} />
-      <Route path="/employee/reports"      element={<EmployeeRoute><EmployeeReports /></EmployeeRoute>} />
-      <Route path="/employee/notifications" element={<EmployeeRoute><EmployeeNotifications /></EmployeeRoute>} />
-      <Route path="/employee/profile"       element={<EmployeeRoute><Profile Sidebar={EmployeeSidebar} /></EmployeeRoute>} />
+      {/* Employee Routes — wrapped in a single provider so dashboard data survives navigation */}
+      <Route path="/employee/*" element={
+        <EmployeeRoute>
+          <EmployeeDashboardProvider>
+            <Routes>
+              <Route path="dashboard"      element={<EmployeeDashboard />} />
+              <Route path="customer-info"  element={<CustomerInfo />} />
+              <Route path="add-customer"   element={<AddCustomer />} />
+              <Route path="services"       element={<Services />} />
+              <Route path="verifications"  element={<EmployeeVerifications />} />
+              <Route path="due-dates"      element={<EmployeeDueDates />} />
+              <Route path="reports"        element={<EmployeeReports />} />
+              <Route path="notifications"  element={<EmployeeNotifications />} />
+              <Route path="profile"        element={<Profile Sidebar={EmployeeSidebar} />} />
+            </Routes>
+          </EmployeeDashboardProvider>
+        </EmployeeRoute>
+      } />
       <Route path="/admin/profile"          element={<AdminRoute><Profile Sidebar={AdminSidebar} isAdmin={true} /></AdminRoute>} />
 
       <Route path="*" element={<Navigate to="/login/superadmin" replace />} />

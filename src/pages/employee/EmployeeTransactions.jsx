@@ -36,7 +36,6 @@ export default function EmployeeTransactions() {
                     <th>Platform</th>
                     <th>Employee</th>
                     <th>Amount</th>
-                    <th>Profit</th>
                     <th>Settled</th>
                   </tr>
                 </thead>
@@ -55,15 +54,14 @@ export default function EmployeeTransactions() {
                       <td>{t.platform || '-'}</td>
                       <td>{t.employee_name}</td>
                       <td style={{ fontWeight: 700 }}>₹{Number(t.amount).toLocaleString('en-IN')}</td>
-                      <td style={{ color: '#16a34a' }}>₹{Number(t.profit).toLocaleString('en-IN')}</td>
                       <td style={{ color: '#0284c7' }}>₹{Number(t.settled_amount).toLocaleString('en-IN')}</td>
                     </tr>
                   ))}
                   {txns.length === 0 && !loading && (
-                    <tr><td colSpan="8" style={{ textAlign: 'center', padding: 20 }}>No transactions found for this branch.</td></tr>
+                    <tr><td colSpan="7" style={{ textAlign: 'center', padding: 20 }}>No transactions found for this branch.</td></tr>
                   )}
                   {loading && (
-                    <tr><td colSpan="8" style={{ textAlign: 'center', padding: 20 }}>Loading...</td></tr>
+                    <tr><td colSpan="7" style={{ textAlign: 'center', padding: 20 }}>Loading...</td></tr>
                   )}
                 </tbody>
               </table>

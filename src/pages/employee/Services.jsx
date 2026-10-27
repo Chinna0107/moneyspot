@@ -39,6 +39,7 @@ export default function Services() {
   const [form, setForm]           = useState(emptyForm)
   const [saving, setSaving]       = useState(false)
   const [savingCard, setSavingCard] = useState(false)
+  const [cardError, setCardError]   = useState('')
   const [msg, setMsg]             = useState('')
   const [error, setError]         = useState('')
   const [history, setHistory]     = useState([])
@@ -233,25 +234,35 @@ export default function Services() {
   }, [search, form.customer_id])
 
   const handleSaveNewCard = async () => {
-    if (!form.card_bank || !form.card_last4 || !form.card_due_day) {
-      return setError('Please enter Card Bank, Last 4 Digits, and Billing Day to save.')
+    setCardError('')
+    if (!form.card_bank || !form.card_last4) {
+      return setCardError('Please select Card Bank and enter Last 4 Digits to save.')
     }
+
+    // Check if this card is already added in the local customer cards list
+    const isDuplicate = customerProfile?.customer_cards?.some(
+      c => c.bank_name?.toLowerCase() === form.card_bank?.toLowerCase() && c.last_4_digits === form.card_last4
+    )
+    if (isDuplicate) {
+      return setCardError(`Card for ${form.card_bank} (**** ${form.card_last4}) has already been added for this customer.`)
+    }
+
     setSavingCard(true)
-    setError('')
     try {
       const res = await api(`/customers/${customerProfile.id}/cards`, {
         method: 'POST',
         headers: auth(),
-        body: JSON.stringify({ bank_name: form.card_bank, last_4_digits: form.card_last4, due_date_day: form.card_due_day })
+        body: JSON.stringify({ bank_name: form.card_bank, last_4_digits: form.card_last4, due_date_day: form.card_due_day || null })
       })
       setCustomerProfile(prev => ({
         ...prev,
         customer_cards: [res, ...(prev.customer_cards || [])]
       }))
-      setForm(f => ({ ...f, customer_card_id: res.id, card_due_day: '' }))
+      setForm(f => ({ ...f, customer_card_id: res.id, card_due_day: '', card_bank: '', card_last4: '' }))
+      setCardError('')
       setMsg('Card saved successfully!')
     } catch (err) {
-      setError(err.message)
+      setCardError(err.message || 'Failed to save card')
     } finally {
       setSavingCard(false)
     }
@@ -426,7 +437,11 @@ export default function Services() {
                             <div style={{ position: 'absolute', top: -10, right: 0, zIndex: 10 }}>
                               <button type="button" onClick={clearCustomer} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✕ Clear Customer</button>
                             </div>
-                            <CustomerQuickView customer={customerProfile} txns={customerProfile.transactions || []} />
+                            <CustomerQuickView 
+                              customer={customerProfile} 
+                              txns={customerProfile.transactions || []} 
+                              onReverified={() => selectCustomer(customerProfile)}
+                            />
                           </div>
                         )}
                       </>
@@ -559,12 +574,16 @@ export default function Services() {
                                 <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                   {fg('Card Bank', sel('card_bank', banks))}
                                   {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
-                                  {fg('Billing Day (1-31)', <input type="number" min="1" max="31" placeholder="e.g. 5" value={form.card_due_day} onChange={e => set('card_due_day', e.target.value)} />)}
                                 </div>
                                 <div style={{ marginTop: 12 }}>
                                   <button type="button" onClick={handleSaveNewCard} disabled={savingCard} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: savingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>
                                     {savingCard ? 'Saving...' : 'Save Card'}
                                   </button>
+                                  {cardError && (
+                                    <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#dc2626', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span>⚠️</span> {cardError}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -630,12 +649,16 @@ export default function Services() {
                                 <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                   {fg('Card Bank', sel('card_bank', banks))}
                                   {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
-                                  {fg('Billing Day (1-31)', <input type="number" min="1" max="31" placeholder="e.g. 5" value={form.card_due_day} onChange={e => set('card_due_day', e.target.value)} />)}
                                 </div>
                                 <div style={{ marginTop: 12 }}>
                                   <button type="button" onClick={handleSaveNewCard} disabled={savingCard} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: savingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>
                                     {savingCard ? 'Saving...' : 'Save Card'}
                                   </button>
+                                  {cardError && (
+                                    <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#dc2626', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span>⚠️</span> {cardError}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

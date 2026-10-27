@@ -239,6 +239,13 @@ export default function Services() {
       return setCardError('Please select Card Bank and enter Last 4 Digits to save.')
     }
 
+    if (form.service_type === 'Bill Pay + Withdrawal') {
+      const dayNum = parseInt(form.card_due_day, 10)
+      if (!form.card_due_day || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
+        return setCardError('Please enter a valid Card Due Date Day (1-31).')
+      }
+    }
+
     // Check if this card is already added in the local customer cards list
     const isDuplicate = customerProfile?.customer_cards?.some(
       c => c.bank_name?.toLowerCase() === form.card_bank?.toLowerCase() && c.last_4_digits === form.card_last4
@@ -252,7 +259,7 @@ export default function Services() {
       const res = await api(`/customers/${customerProfile.id}/cards`, {
         method: 'POST',
         headers: auth(),
-        body: JSON.stringify({ bank_name: form.card_bank, last_4_digits: form.card_last4, due_date_day: form.card_due_day || null })
+        body: JSON.stringify({ bank_name: form.card_bank, last_4_digits: form.card_last4, due_date_day: form.card_due_day ? parseInt(form.card_due_day, 10) : null })
       })
       setCustomerProfile(prev => ({
         ...prev,
@@ -571,9 +578,10 @@ export default function Services() {
                             {!form.customer_card_id && (
                               <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #cbd5e1' }}>
                                 <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#334155' }}>Enter New Card Details</h4>
-                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                                   {fg('Card Bank', sel('card_bank', banks))}
                                   {fg('Card Last 4 Digits', <input placeholder="Card Last 4 Digits" maxLength={4} value={form.card_last4} onChange={e => set('card_last4', e.target.value.replace(/\D/g,'').slice(0,4))} />)}
+                                  {fg('Card Due Date Day (1-31)', <input type="number" min="1" max="31" placeholder="e.g. 15" value={form.card_due_day} onChange={e => set('card_due_day', e.target.value)} />)}
                                 </div>
                                 <div style={{ marginTop: 12 }}>
                                   <button type="button" onClick={handleSaveNewCard} disabled={savingCard} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: savingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>

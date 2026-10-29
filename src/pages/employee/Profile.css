@@ -737,5 +737,19 @@
   .id-card-field { flex-direction: column; align-items: flex-start; gap: 4px; }
   .id-card-field-val { text-align: left; }
   .profile-coins-grid { grid-template-columns: 1fr; }
-  .profile-assignments-wrap, .profile-coins-wrap { padding: 0 20px 40px; }
+  .profile-assignments-wrap, .profile-coins-wrap, .profile-attendance-wrap { padding: 0 20px 40px; }
 }
+
+/* ── Profile Attendance Section ── */
+.profile-attendance-wrap {
+  padding: 0 40px 32px;
+}
+
+.profile-attendance-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+

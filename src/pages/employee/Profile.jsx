@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MdLogin, MdLogout } from 'react-icons/md'
 import { api } from '../../utils/api'
 import { getTokenByRole } from '../../utils/tokenUtils'
+import { useEmployeeDashboard } from '../../hooks/useEmployeeDashboardStore'
 import '../dashboard.css'
 import './Profile.css'
+import './EmployeeDashboard.css'
 
 const authHeader = (role = 'employee') => {
   const token = getTokenByRole(role) || getTokenByRole('admin') || getTokenByRole('superadmin') || getTokenByRole('employee')
@@ -116,12 +119,32 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const [completedAssignments, setCompletedAssignments] = useState([])
   const navigate = useNavigate()
 
+  // Attendance state
+  const dashboardContext = useEmployeeDashboard()
+  const dashboardData = dashboardContext?.data
+  const forceRefreshDashboard = dashboardContext?.forceRefresh
+
+  const [attData, setAttData]       = useState(dashboardData?.attendance ?? null)
+  const [attMsg, setAttMsg]         = useState('')
+  const [attErr, setAttErr]         = useState('')
+  const [attLoading, setAttLoading] = useState(false)
+
   const role = isAdmin ? 'admin' : 'employee'
 
   const fetchProfile = () => {
     api('/auth/me', { headers: authHeader(role) })
       .then(d => { setUser(d); setCoins(d.coins ?? 0); setLoading(false) })
       .catch(() => setLoading(false))
+  }
+
+  const fetchAttendance = () => {
+    if (role === 'employee') {
+      api('/dashboard/employee/full', { headers: authHeader(role) })
+        .then(res => {
+          if (res?.attendance !== undefined) setAttData(res.attendance)
+        })
+        .catch(() => {})
+    }
   }
 
   const fetchCoins = () => {
@@ -140,7 +163,36 @@ export default function Profile({ Sidebar, isAdmin = false }) {
       .catch(() => {})
   }
 
-  useEffect(() => { fetchProfile(); fetchAssignments(); }, [])
+  useEffect(() => { 
+    fetchProfile(); 
+    fetchAssignments(); 
+    fetchAttendance();
+  }, [])
+
+  useEffect(() => {
+    if (dashboardData?.attendance !== undefined) {
+      setAttData(dashboardData.attendance)
+    }
+  }, [dashboardData?.attendance])
+
+  const markAttendance = async type => {
+    setAttLoading(true); setAttMsg(''); setAttErr('')
+    try {
+      const r = await api('/dashboard/attendance/mark', { 
+        method: 'POST', 
+        headers: authHeader(role), 
+        body: JSON.stringify({ type }) 
+      })
+      setAttMsg(r.coinsEarned > 0 ? `${r.message} 🪙 +${r.coinsEarned} coins!` : r.message)
+      if (typeof forceRefreshDashboard === 'function') {
+        forceRefreshDashboard()
+      }
+      fetchAttendance()
+      fetchProfile()
+    } catch (e) { setAttErr(e.message) }
+    setAttLoading(false)
+  }
+
   useEffect(() => { if (showCoins) fetchCoins() }, [showCoins])
 
   const handleRedeem = async e => {
@@ -164,6 +216,17 @@ export default function Profile({ Sidebar, isAdmin = false }) {
   const initials  = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
   const empId     = user?.id ? `MS-${String(user.id).padStart(5, '0')}` : '—'
   const joinDate  = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'
+
+  // Calculate elapsed shift time for active shift tracker
+  const now = new Date()
+  let shiftPct = 0
+  if (attData?.check_in && !attData?.check_out) {
+    const [hh, mm] = attData.check_in.split(':').map(Number)
+    const elapsedMins = (now.getHours() * 60 + now.getMinutes()) - (hh * 60 + mm)
+    if (elapsedMins > 0) {
+      shiftPct = Math.min(100, Math.round((elapsedMins / (9 * 60)) * 100))
+    }
+  }
 
   const content = (
     <div className="profile-page">
@@ -246,6 +309,101 @@ export default function Profile({ Sidebar, isAdmin = false }) {
                 </div>
               </div>
             </div>
+
+            {/* ── ATTENDANCE (CHECK IN / CHECK OUT) ── */}
+            {!isAdmin && (
+              <div className="profile-attendance-wrap">
+                <div className="profile-attendance-card ed-card" style={{ marginBottom: 0 }}>
+                  <div className="ed-card-header">
+                    <span className="ed-card-icon">🕒</span>
+                    <h2>Today's Attendance</h2>
+                    {attData?.status && (
+                      <span className="ed-card-badge" style={{
+                        background: attData.status === 'Present' ? '#d1fae5' : '#fee2e2',
+                        color:      attData.status === 'Present' ? '#059669' : '#dc2626'
+                      }}>{attData.status}</span>
+                    )}
+                  </div>
+                  <div className="ed-card-body">
+                    {(attMsg || attErr) && (
+                      <div className={`ed-alert ${attErr ? 'ed-alert-error' : 'ed-alert-success'}`}>
+                        {attErr || attMsg}
+                      </div>
+                    )}
+                    <div className="ed-att-grid">
+                      <div className="ed-att-box">
+                        <div className="ed-att-label">Check In</div>
+                        <div className="ed-att-time" style={{ color: attData?.check_in ? '#059669' : '#94a3b8' }}>
+                          {attData?.check_in || '—'}
+                        </div>
+                        {attData?.late && <div className="ed-att-late">⏰ Late arrival</div>}
+                        {attData?.check_in && !attData?.late && <div style={{ fontSize: 11, color: '#059669', marginTop: 4, fontWeight: 600 }}>✅ On time</div>}
+                      </div>
+                      <div className="ed-att-divider" />
+                      <div className="ed-att-box">
+                        <div className="ed-att-label">Check Out</div>
+                        <div className="ed-att-time" style={{ color: attData?.check_out ? '#c02040' : '#94a3b8' }}>
+                          {attData?.check_out || (attData?.check_in ? 'Pending' : '—')}
+                        </div>
+                        {attData?.minutes > 0 && (
+                          <div className="ed-att-mins">
+                            ⏱ {Math.floor(attData.minutes / 60)}h {attData.minutes % 60}m worked
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Active Shift Tracker */}
+                    {attData?.check_in && !attData?.check_out && (
+                      <div className="ed-shift-tracker">
+                        <div className="ed-shift-header">
+                          <span>Shift Progress</span>
+                          <span>{shiftPct}% of 5h</span>
+                        </div>
+                        <div className="ed-progress-track">
+                          <div className="ed-progress-fill" style={{ width: `${shiftPct}%`, background: 'linear-gradient(90deg, #3b82f6, #0ea5e9)' }}>
+                            <div className="ed-progress-glow" style={{ background: '#0ea5e9', left: '100%' }} />
+                          </div>
+                        </div>
+                        <p className="ed-shift-tip">💡 Tip: Stay hydrated and take short breaks!</p>
+                      </div>
+                    )}
+
+                    {attData?.check_in && attData?.check_out && attData?.minutes > 0 && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#059669', fontWeight: 700 }}>⏱ Total Duration</span>
+                          <strong style={{ color: '#059669', fontSize: 15 }}>{Math.floor(attData.minutes / 60)}h {attData.minutes % 60}m</strong>
+                        </div>
+                        {attData.coins_earned > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                            <span style={{ color: '#d97706', fontWeight: 700 }}>🪙 Coins Earned</span>
+                            <strong style={{ color: '#d97706' }}>+{fmt(attData.coins_earned)}</strong>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="ed-att-btns">
+                      <button className="ed-att-btn ed-att-in" onClick={() => markAttendance('check_in')}
+                        disabled={attLoading || !!attData?.check_in}>
+                        <MdLogin /> {attData?.check_in ? `In at ${attData.check_in}` : 'Check In'}
+                      </button>
+                      <button className="ed-att-btn ed-att-out" onClick={() => markAttendance('check_out')}
+                        disabled={attLoading || !attData?.check_in || !!attData?.check_out}>
+                        <MdLogout /> {attData?.check_out ? `Out at ${attData.check_out}` : 'Check Out'}
+                      </button>
+                    </div>
+
+                    {attData?.check_in && attData?.check_out && (
+                      <div style={{ marginTop: 10, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#dc2626', fontWeight: 600, textAlign: 'center' }}>
+                        🔒 Attendance completed for today. Check-in is not allowed again.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ── ASSIGNMENTS SECTION ── */}
             {pendingAssignments.length > 0 && (

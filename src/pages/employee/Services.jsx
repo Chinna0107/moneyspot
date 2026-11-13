@@ -40,6 +40,10 @@ export default function Services() {
   const [saving, setSaving]       = useState(false)
   const [savingCard, setSavingCard] = useState(false)
   const [cardError, setCardError]   = useState('')
+  const [editingCardId, setEditingCardId] = useState(null)
+  const [editCardForm, setEditCardForm]   = useState({ bank_name: '', last_4_digits: '', due_date_day: '' })
+  const [updatingCard, setUpdatingCard]   = useState(false)
+  const [deletingCardId, setDeletingCardId] = useState(null)
   const [msg, setMsg]             = useState('')
   const [error, setError]         = useState('')
   const [history, setHistory]     = useState([])
@@ -272,6 +276,98 @@ export default function Services() {
       setCardError(err.message || 'Failed to save card')
     } finally {
       setSavingCard(false)
+    }
+  }
+
+  const handleStartEditCard = (card) => {
+    setEditingCardId(card.id)
+    setEditCardForm({
+      bank_name: card.bank_name || '',
+      last_4_digits: card.last_4_digits || '',
+      due_date_day: card.due_date_day ? String(card.due_date_day) : ''
+    })
+    setCardError('')
+  }
+
+  const handleUpdateCard = async () => {
+    setCardError('')
+    if (!editCardForm.bank_name || !editCardForm.last_4_digits) {
+      return setCardError('Bank Name and Last 4 Digits are required to update.')
+    }
+    if (editCardForm.due_date_day) {
+      const dNum = parseInt(editCardForm.due_date_day, 10)
+      if (isNaN(dNum) || dNum < 1 || dNum > 31) {
+        return setCardError('Please enter a valid Card Due Date Day (1-31).')
+      }
+    }
+
+    setUpdatingCard(true)
+    try {
+      const updated = await api(`/customers/${customerProfile.id}/cards/${editingCardId}`, {
+        method: 'PUT',
+        headers: auth(),
+        body: JSON.stringify({
+          bank_name: editCardForm.bank_name,
+          last_4_digits: editCardForm.last_4_digits,
+          due_date_day: editCardForm.due_date_day ? parseInt(editCardForm.due_date_day, 10) : null
+        })
+      })
+
+      setCustomerProfile(prev => ({
+        ...prev,
+        customer_cards: (prev.customer_cards || []).map(c => c.id === editingCardId ? updated : c)
+      }))
+
+      // If currently selected card was updated, update form state
+      if (form.customer_card_id === editingCardId) {
+        let newDueDate = form.bill_due_date
+        if (updated.due_date_day) {
+          const today = new Date();
+          let target = new Date(today.getFullYear(), today.getMonth(), updated.due_date_day);
+          if (target < today) target.setMonth(target.getMonth() + 1);
+          const y = target.getFullYear(), m = String(target.getMonth() + 1).padStart(2, '0'), d = String(target.getDate()).padStart(2, '0');
+          newDueDate = `${y}-${m}-${d}`;
+        }
+        setForm(f => ({ ...f, card_bank: updated.bank_name, card_last4: updated.last_4_digits, bill_due_date: newDueDate }))
+      }
+
+      setEditingCardId(null)
+      setCardError('')
+      setMsg('Card updated successfully!')
+    } catch (err) {
+      setCardError(err.message || 'Failed to update card')
+    } finally {
+      setUpdatingCard(false)
+    }
+  }
+
+  const handleDeleteCard = async (cardId) => {
+    const cardToDelete = customerProfile?.customer_cards?.find(c => c.id === cardId)
+    const cardName = cardToDelete ? `${cardToDelete.bank_name} (**** ${cardToDelete.last_4_digits})` : 'this card'
+    if (!window.confirm(`Are you sure you want to delete ${cardName}?`)) return
+
+    setDeletingCardId(cardId)
+    setCardError('')
+    try {
+      await api(`/customers/${customerProfile.id}/cards/${cardId}`, {
+        method: 'DELETE',
+        headers: auth()
+      })
+
+      setCustomerProfile(prev => ({
+        ...prev,
+        customer_cards: (prev.customer_cards || []).filter(c => c.id !== cardId)
+      }))
+
+      if (form.customer_card_id === cardId) {
+        setForm(f => ({ ...f, customer_card_id: '', card_bank: '', card_last4: '', card_due_day: '' }))
+      }
+      if (editingCardId === cardId) setEditingCardId(null)
+      setMsg('Card deleted successfully!')
+    } catch (err) {
+      setCardError(err.message || 'Failed to delete card')
+    } finally {
+      setDeletingCardId(null)
     }
   }
 
@@ -546,8 +642,31 @@ export default function Services() {
                       <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>Please fill all information below</p>
                       <div className="dash-form-grid">
                         {customerProfile && (
-                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-                            <label style={{ color: '#0f172a' }}>Saved Cards</label>
+                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px dashed #cbd5e1' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <label style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>Saved Cards</label>
+                              {form.customer_card_id && (
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const sel = customerProfile.customer_cards?.find(c => c.id === form.customer_card_id);
+                                      if (sel) handleStartEditCard(sel);
+                                    }}
+                                    style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    ✏️ Edit Card
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCard(form.customer_card_id)}
+                                    disabled={deletingCardId === form.customer_card_id}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: deletingCardId === form.customer_card_id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    {deletingCardId === form.customer_card_id ? 'Deleting...' : '🗑️ Delete Card'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
                             <select onChange={e => {
                               const selCard = customerProfile.customer_cards.find(c => c.id === parseInt(e.target.value));
                               if (selCard) {
@@ -562,12 +681,15 @@ export default function Services() {
                                 setForm(f => ({ ...f, card_bank: selCard.bank_name, card_last4: selCard.last_4_digits, customer_card_id: selCard.id, bill_due_date: newDueDate || f.bill_due_date }));
                               }
                               else setForm(f => ({ ...f, customer_card_id: '' }));
+                              setEditingCardId(null);
                             }} value={form.customer_card_id || ''}>
                               {customerProfile.customer_cards?.length > 0 ? (
                                 <>
                                   <option value="">+ Add a New Card (Enter details below)</option>
                                   {customerProfile.customer_cards.map(c => (
-                                    <option key={c.id} value={c.id}>{c.bank_name} - **** {c.last_4_digits}</option>
+                                    <option key={c.id} value={c.id}>
+                                      {c.bank_name} - **** {c.last_4_digits} {c.due_date_day ? `(Due: ${c.due_date_day}th)` : ''}
+                                    </option>
                                   ))}
                                 </>
                               ) : (
@@ -575,7 +697,42 @@ export default function Services() {
                               )}
                             </select>
 
-                            {!form.customer_card_id && (
+                            {/* Edit Card In-Place Form */}
+                            {editingCardId && (
+                              <div style={{ marginTop: 14, padding: 16, background: '#eff6ff', borderRadius: 8, border: '1.5px solid #93c5fd' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                  <h4 style={{ margin: 0, fontSize: 13, color: '#1e40af', fontWeight: 800 }}>✏️ Edit Card Details</h4>
+                                  <button type="button" onClick={() => setEditingCardId(null)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                                </div>
+                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                                  <div className="dash-form-group">
+                                    <label>Card Bank</label>
+                                    <select value={editCardForm.bank_name} onChange={e => setEditCardForm(f => ({ ...f, bank_name: e.target.value }))}>
+                                      <option value="">Select Bank</option>
+                                      {banks.map((b, i) => <option key={i} value={b}>{b}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="dash-form-group">
+                                    <label>Card Last 4 Digits</label>
+                                    <input placeholder="Card Last 4 Digits" maxLength={4} value={editCardForm.last_4_digits} onChange={e => setEditCardForm(f => ({ ...f, last_4_digits: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+                                  </div>
+                                  <div className="dash-form-group">
+                                    <label>Card Due Date Day (1-31)</label>
+                                    <input type="number" min="1" max="31" placeholder="e.g. 15" value={editCardForm.due_date_day} onChange={e => setEditCardForm(f => ({ ...f, due_date_day: e.target.value }))} />
+                                  </div>
+                                </div>
+                                <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
+                                  <button type="button" onClick={handleUpdateCard} disabled={updatingCard} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', cursor: updatingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
+                                    {updatingCard ? 'Updating...' : 'Update Card'}
+                                  </button>
+                                  <button type="button" onClick={() => setEditingCardId(null)} style={{ background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 6, padding: '8px 14px', cursor: 'pointer', fontSize: 13 }}>
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {!form.customer_card_id && !editingCardId && (
                               <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #cbd5e1' }}>
                                 <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#334155' }}>Enter New Card Details</h4>
                                 <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
@@ -622,8 +779,31 @@ export default function Services() {
                       <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>Please fill all information below</p>
                       <div className="dash-form-grid">
                         {customerProfile && (
-                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-                            <label style={{ color: '#0f172a' }}>Saved Cards</label>
+                          <div className="dash-form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px dashed #cbd5e1' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <label style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>Saved Cards</label>
+                              {form.customer_card_id && (
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const sel = customerProfile.customer_cards?.find(c => c.id === form.customer_card_id);
+                                      if (sel) handleStartEditCard(sel);
+                                    }}
+                                    style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    ✏️ Edit Card
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCard(form.customer_card_id)}
+                                    disabled={deletingCardId === form.customer_card_id}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: deletingCardId === form.customer_card_id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    {deletingCardId === form.customer_card_id ? 'Deleting...' : '🗑️ Delete Card'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
                             <select onChange={e => {
                               const selCard = customerProfile.customer_cards.find(c => c.id === parseInt(e.target.value));
                               if (selCard) {
@@ -638,12 +818,15 @@ export default function Services() {
                                 setForm(f => ({ ...f, card_bank: selCard.bank_name, card_last4: selCard.last_4_digits, customer_card_id: selCard.id, bill_due_date: newDueDate || f.bill_due_date }));
                               }
                               else setForm(f => ({ ...f, customer_card_id: '' }));
+                              setEditingCardId(null);
                             }} value={form.customer_card_id || ''}>
                               {customerProfile.customer_cards?.length > 0 ? (
                                 <>
                                   <option value="">+ Add a New Card (Enter details below)</option>
                                   {customerProfile.customer_cards.map(c => (
-                                    <option key={c.id} value={c.id}>{c.bank_name} - **** {c.last_4_digits}</option>
+                                    <option key={c.id} value={c.id}>
+                                      {c.bank_name} - **** {c.last_4_digits} {c.due_date_day ? `(Due: ${c.due_date_day}th)` : ''}
+                                    </option>
                                   ))}
                                 </>
                               ) : (
@@ -651,7 +834,42 @@ export default function Services() {
                               )}
                             </select>
 
-                            {!form.customer_card_id && (
+                            {/* Edit Card In-Place Form */}
+                            {editingCardId && (
+                              <div style={{ marginTop: 14, padding: 16, background: '#eff6ff', borderRadius: 8, border: '1.5px solid #93c5fd' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                  <h4 style={{ margin: 0, fontSize: 13, color: '#1e40af', fontWeight: 800 }}>✏️ Edit Card Details</h4>
+                                  <button type="button" onClick={() => setEditingCardId(null)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                                </div>
+                                <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                                  <div className="dash-form-group">
+                                    <label>Card Bank</label>
+                                    <select value={editCardForm.bank_name} onChange={e => setEditCardForm(f => ({ ...f, bank_name: e.target.value }))}>
+                                      <option value="">Select Bank</option>
+                                      {banks.map((b, i) => <option key={i} value={b}>{b}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="dash-form-group">
+                                    <label>Card Last 4 Digits</label>
+                                    <input placeholder="Card Last 4 Digits" maxLength={4} value={editCardForm.last_4_digits} onChange={e => setEditCardForm(f => ({ ...f, last_4_digits: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+                                  </div>
+                                  <div className="dash-form-group">
+                                    <label>Card Due Date Day (1-31)</label>
+                                    <input type="number" min="1" max="31" placeholder="e.g. 15" value={editCardForm.due_date_day} onChange={e => setEditCardForm(f => ({ ...f, due_date_day: e.target.value }))} />
+                                  </div>
+                                </div>
+                                <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
+                                  <button type="button" onClick={handleUpdateCard} disabled={updatingCard} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', cursor: updatingCard ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
+                                    {updatingCard ? 'Updating...' : 'Update Card'}
+                                  </button>
+                                  <button type="button" onClick={() => setEditingCardId(null)} style={{ background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 6, padding: '8px 14px', cursor: 'pointer', fontSize: 13 }}>
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {!form.customer_card_id && !editingCardId && (
                               <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #cbd5e1' }}>
                                 <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#334155' }}>Enter New Card Details</h4>
                                 <div className="dash-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

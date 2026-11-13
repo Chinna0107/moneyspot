@@ -46,6 +46,7 @@ export default function RegisterCustomer() {
       account_number: parsed.account_number || '',
       ifsc_code: parsed.ifsc_code || '',
       bank_verified_name: parsed.bank_verified_name || '',
+      address: parsed.address || '',
       pan_img: null,
       aadhar_img: null,
       card_front_img: null
@@ -159,12 +160,17 @@ export default function RegisterCustomer() {
           if (!res.ok || !data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.error || data.data?.message || 'Aadhar OTP verification failed')
           
           const aadharDetails = data.data?.data || {};
+          const detectedAddress = typeof aadharDetails.address === 'string'
+            ? aadharDetails.address
+            : (aadharDetails.address?.full || aadharDetails.address?.combined_address || aadharDetails.address?.complete_address || (aadharDetails.address ? JSON.stringify(aadharDetails.address) : ''));
+
           setForm(f => ({
             ...f,
             profile_image_url: aadharDetails.photo || aadharDetails.profile_image || null,
             dob: aadharDetails.dob || null,
             father_name: aadharDetails.care_of || null,
-            aadhar_linked_mobile: aadharDetails.linked_mobile || null
+            aadhar_linked_mobile: aadharDetails.linked_mobile || null,
+            address: detectedAddress || null
           }))
           setStep(3)
         }
@@ -285,6 +291,7 @@ export default function RegisterCustomer() {
       if (form.dob) fd.append('dob', form.dob)
       if (form.father_name) fd.append('father_name', form.father_name)
       if (form.cibil_score) fd.append('cibil_score', form.cibil_score)
+      if (form.address) fd.append('address', form.address)
       fd.append('branch', form.branch)
       fd.append('referral_name', form.referral_name)
       fd.append('referral_phone', form.referral_phone)

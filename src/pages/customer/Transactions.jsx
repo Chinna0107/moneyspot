@@ -91,14 +91,18 @@ function buildReceiptHTML(t) {
   const chargesAmt = parseFloat(t.charges_amount || 0)
   const settled    = parseFloat(t.settled_amount || 0)
 
+  // Bank name resolution (card_bank or bank)
+  const bankName   = t.card_bank || t.bank
+  // Card type resolution (card or category)
+  const cardType   = t.card || t.category
+
   const serviceRows = [
     t.service_type  && `<div class="row"><span class="row-label">Service</span><span class="row-value">${t.service_type}</span></div>`,
+    bankName        && `<div class="row"><span class="row-label">Bank Name</span><span class="row-value" style="font-weight:700;color:#1e293b">${bankName}</span></div>`,
+    cardType        && `<div class="row"><span class="row-label">Card Type</span><span class="row-value" style="font-weight:700;color:#1e293b">${cardType}</span></div>`,
+    t.card_last4    && `<div class="row"><span class="row-label">Card Last 4</span><span class="row-value">•••• ${t.card_last4}</span></div>`,
     t.platform      && `<div class="row"><span class="row-label">Platform</span><span class="row-value">${t.platform}</span></div>`,
     t.bill_platform && `<div class="row"><span class="row-label">Bill Platform</span><span class="row-value">${t.bill_platform}</span></div>`,
-    t.bank          && `<div class="row"><span class="row-label">Bank</span><span class="row-value">${t.bank}</span></div>`,
-    t.card          && `<div class="row"><span class="row-label">Card Type</span><span class="row-value">${t.card}</span></div>`,
-    t.card_bank     && `<div class="row"><span class="row-label">Card Bank</span><span class="row-value">${t.card_bank}</span></div>`,
-    t.card_last4    && `<div class="row"><span class="row-label">Card Last 4</span><span class="row-value">****${t.card_last4}</span></div>`,
     t.payment_mode  && `<div class="row"><span class="row-label">Payment Mode</span><span class="row-value">${t.payment_mode}</span></div>`,
   ].filter(Boolean).join('')
 
@@ -195,26 +199,50 @@ export default function CustomerTransactions() {
               ) : (
                 <table className="cust-table">
                   <thead>
-                    <tr><th>#</th><th>Date</th><th>Service</th><th>Txn Amount</th><th>Charges %</th><th>Charges</th><th>Settled Amount</th><th>Receipt</th></tr>
+                    <tr>
+                      <th>#</th>
+                      <th>Date</th>
+                      <th>Service</th>
+                      <th>Bank / Card</th>
+                      <th>Txn Amount</th>
+                      <th>Charges %</th>
+                      <th>Charges</th>
+                      <th>Settled Amount</th>
+                      <th>Receipt</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    {txns.map(t => (
-                      <tr key={t.id}>
-                        <td style={{ color: '#94a3b8', fontSize: 12 }}>#{t.id}</td>
-                        <td style={{ fontSize: 12 }}>{new Date(t.created_at).toLocaleDateString('en-IN')}</td>
-                        <td style={{ fontSize: 12 }}>{t.service_type || '—'}</td>
-                        <td><strong style={{ color: '#1a0a2e' }}>₹{fmt(t.amount)}</strong></td>
-                        <td style={{ color: '#d97706', fontWeight: 700 }}>{parseFloat(t.charges_pct || 0)}%</td>
-                        <td style={{ color: '#dc2626', fontWeight: 700 }}>₹{fmt(t.charges_amount)}</td>
-        <td><strong style={{ color: '#059669', fontSize: 15, background: '#d1fae5', padding: '4px 10px', borderRadius: 8 }}>₹{fmt(t.settled_amount)}</strong></td>
-                        <td>
-                          <button onClick={() => openPrint(t)}
-                            style={{ background: 'linear-gradient(135deg,#402070,#c02040)', border: 'none', color: '#fff', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                            🖨️ Print
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {txns.map(t => {
+                      const bankName = t.card_bank || t.bank;
+                      const cardType = t.card || t.category;
+                      return (
+                        <tr key={t.id}>
+                          <td style={{ color: '#94a3b8', fontSize: 12 }}>#{t.id}</td>
+                          <td style={{ fontSize: 12 }}>{new Date(t.created_at).toLocaleDateString('en-IN')}</td>
+                          <td style={{ fontSize: 12 }}>{t.service_type || '—'}</td>
+                          <td>
+                            <div style={{ fontWeight: 700, color: '#1a0a2e', fontSize: 13 }}>
+                              {bankName || '—'}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                              {cardType && <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, marginRight: 4, fontWeight: 600 }}>{cardType}</span>}
+                              {t.card_last4 && <span>•••• {t.card_last4}</span>}
+                              {!cardType && !t.card_last4 && !bankName && '—'}
+                            </div>
+                          </td>
+                          <td><strong style={{ color: '#1a0a2e' }}>₹{fmt(t.amount)}</strong></td>
+                          <td style={{ color: '#d97706', fontWeight: 700 }}>{parseFloat(t.charges_pct || 0)}%</td>
+                          <td style={{ color: '#dc2626', fontWeight: 700 }}>₹{fmt(t.charges_amount)}</td>
+                          <td><strong style={{ color: '#059669', fontSize: 15, background: '#d1fae5', padding: '4px 10px', borderRadius: 8 }}>₹{fmt(t.settled_amount)}</strong></td>
+                          <td>
+                            <button onClick={() => openPrint(t)}
+                              style={{ background: 'linear-gradient(135deg,#402070,#c02040)', border: 'none', color: '#fff', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                              🖨️ Print
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

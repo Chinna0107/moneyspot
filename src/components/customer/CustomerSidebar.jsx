@@ -1,25 +1,46 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  MdDashboard,
+  MdCreditCard,
+  MdReceiptLong,
+  MdMonetizationOn,
+  MdBadge,
+  MdTrendingUp,
+  MdLocalOffer,
+  MdNotificationsNone,
+  MdSupportAgent,
+  MdSecurity,
+  MdLogout,
+  MdClose,
+  MdMenu
+} from 'react-icons/md'
 import { getCustomerUser, useCustomerLogin } from '../../hooks/useCustomerAuth'
 import logoImg from '../../assets/icons png/MS Logo.png'
 import nameImg from '../../assets/icons png/Money Spot Logo.png'
 import './CustomerSidebar.css'
 
 const nav = [
-  { to: '/customer/dashboard',     icon: '🏠', label: 'Dashboard' },
-  { to: '/customer/services',      icon: '💳', label: 'Services' },
-  { to: '/customer/transactions',  icon: '📊', label: 'Transactions' },
-  { to: '/customer/coins',         icon: '🪙', label: 'MS Coins' },
-  { to: '/customer/kyc',           icon: '🪪', label: 'KYC & Profile' },
-  { to: '/customer/cibil',         icon: '💳', label: 'CIBIL Score' },
-  { to: '/customer/offers',        icon: '💰', label: 'Offers' },
-  { to: '/customer/notifications', icon: '🔔', label: 'Alerts' },
-  { to: '/customer/support',       icon: '📞', label: 'Support' },
-  { to: '/customer/security',      icon: '🔐', label: 'Security' },
+  { to: '/customer/dashboard',     icon: <MdDashboard />,       label: 'Dashboard' },
+  { to: '/customer/services',      icon: <MdCreditCard />,      label: 'Services' },
+  { to: '/customer/transactions',  icon: <MdReceiptLong />,     label: 'Transactions' },
+  { to: '/customer/coins',         icon: <MdMonetizationOn />,  label: 'MS Coins' },
+  { to: '/customer/kyc',           icon: <MdBadge />,           label: 'KYC & Profile' },
+  { to: '/customer/cibil',         icon: <MdTrendingUp />,      label: 'CIBIL Score' },
+  { to: '/customer/offers',        icon: <MdLocalOffer />,      label: 'Offers & Gifts' },
+  { to: '/customer/notifications', icon: <MdNotificationsNone />,label: 'Alerts' },
+  { to: '/customer/support',       icon: <MdSupportAgent />,    label: 'Help & Support' },
+  { to: '/customer/security',      icon: <MdSecurity />,        label: 'Security' },
 ]
 
-// Bottom tab bar shows only first 5 items
-const bottomTabs = nav.slice(0, 5)
+// Bottom tab bar shows key items for mobile
+const bottomTabs = [
+  { to: '/customer/dashboard',    icon: <MdDashboard />,      label: 'Home' },
+  { to: '/customer/services',     icon: <MdCreditCard />,     label: 'Services' },
+  { to: '/customer/transactions', icon: <MdReceiptLong />,    label: 'History' },
+  { to: '/customer/coins',        icon: <MdMonetizationOn />, label: 'Coins' },
+  { to: '/customer/support',      icon: <MdSupportAgent />,   label: 'Support' },
+]
 
 export default function CustomerSidebar() {
   const user = getCustomerUser()
@@ -61,7 +82,10 @@ export default function CustomerSidebar() {
           ))}
         </nav>
 
-        <button className="csb-logout" onClick={handleLogout}>🚪 Logout</button>
+        <button className="csb-logout" onClick={handleLogout}>
+          <MdLogout style={{ fontSize: 18 }} />
+          <span>Sign Out</span>
+        </button>
       </aside>
 
       {/* ── Mobile top navbar ── */}
@@ -71,10 +95,12 @@ export default function CustomerSidebar() {
           <img src={nameImg} alt="MoneySpot" style={{ height: 20, width: 'auto', objectFit: 'contain' }} />
         </div>
         <div className="csb-mobile-user">
-          <div className="csb-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>
+          <div className="csb-avatar" style={{ width: 34, height: 34, fontSize: 13 }}>
             {user?.name?.[0]?.toUpperCase() || 'C'}
           </div>
-          <button className="csb-mobile-menu-btn" onClick={() => setDrawerOpen(true)}>☰</button>
+          <button className="csb-mobile-menu-btn" onClick={() => setDrawerOpen(true)}>
+            <MdMenu style={{ fontSize: 22 }} />
+          </button>
         </div>
       </header>
 
@@ -90,7 +116,9 @@ export default function CustomerSidebar() {
                   <div className="csb-user-pan">{user?.pan || ''}</div>
                 </div>
               </div>
-              <button className="csb-drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
+              <button className="csb-drawer-close" onClick={() => setDrawerOpen(false)}>
+                <MdClose style={{ fontSize: 20 }} />
+              </button>
             </div>
             <nav className="csb-nav" style={{ padding: '8px 12px' }}>
               {nav.map(n => (
@@ -101,7 +129,10 @@ export default function CustomerSidebar() {
                 </NavLink>
               ))}
             </nav>
-            <button className="csb-logout" onClick={handleLogout}>🚪 Logout</button>
+            <button className="csb-logout" onClick={handleLogout}>
+              <MdLogout style={{ fontSize: 18 }} />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
       )}

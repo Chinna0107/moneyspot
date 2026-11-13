@@ -14,7 +14,8 @@ const empty = {
   acc_number: '', ifsc_code: '', bank_verified_name: '', cibil_score: '',
   aadhar_img_url: '', pan_img_url: '', card_front_img_url: '',
   referral_name: '', referral_phone: '', source: '',
-  profile_image_url: '', dob: '', father_name: '', aadhar_linked_mobile: ''
+  profile_image_url: '', dob: '', father_name: '', aadhar_linked_mobile: '',
+  address: ''
 }
 
 const ImgField = ({ label, icon, field, value, onChange }) => {
@@ -202,12 +203,17 @@ export default function AddCustomer() {
           if (!res.ok || !data.success || data.data?.status !== 'success' || data.data?.error_code) throw new Error(data.error || data.data?.message || 'Aadhar OTP verification failed')
           
           const aadharDetails = data.data?.data || {};
+          const detectedAddress = typeof aadharDetails.address === 'string'
+            ? aadharDetails.address
+            : (aadharDetails.address?.full || aadharDetails.address?.combined_address || aadharDetails.address?.complete_address || (aadharDetails.address ? JSON.stringify(aadharDetails.address) : ''));
+
           setForm(f => ({
             ...f,
             profile_image_url: aadharDetails.photo || aadharDetails.profile_image || null,
             dob: aadharDetails.dob || null,
             father_name: aadharDetails.care_of || null,
-            aadhar_linked_mobile: aadharDetails.linked_mobile || null
+            aadhar_linked_mobile: aadharDetails.linked_mobile || null,
+            address: detectedAddress || null
           }))
           setStep(3)
         }

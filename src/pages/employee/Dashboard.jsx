@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import EmployeeSidebar from '../../components/employee/EmployeeSidebar'
 import { getTokenByRole } from '../../utils/tokenUtils'
 import { api } from '../../utils/api'
@@ -85,6 +86,7 @@ const DonutChart = ({ pct, title, subtitle, color, isZero }) => {
 }
 
 export default function EmployeeDashboard() {
+  const navigate = useNavigate()
   const { data, loading, forceRefresh } = useEmployeeDashboard()
   const [attMsg, setAttMsg]       = useState('')
   const [attErr, setAttErr]       = useState('')
@@ -214,9 +216,39 @@ export default function EmployeeDashboard() {
               </div>
             </div>
             <div className="ed-hero-actions">
-              <button className="ed-refresh-btn" onClick={refetch}><MdRefresh size={18} /></button>
-              <div className="ed-coins-pill">🪙 {loading ? '...' : fmt(profile.coins ?? 0)} coins</div>
+              <button className="ed-refresh-btn" onClick={refetch} title="Refresh Dashboard"><MdRefresh size={18} /></button>
+              <div className="ed-coins-pill" style={{ cursor: 'pointer' }} onClick={() => navigate('/employee/profile')} title="View & Redeem Coins">
+                🪙 {loading ? '...' : fmt(profile.coins ?? 0)} coins
+              </div>
             </div>
+          </div>
+
+          {/* Quick Operations Strip */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/employee/services')}
+              style={{ background: 'linear-gradient(135deg, #c02040, #e11d48)', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: 20, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(192,32,64,0.35)' }}
+            >
+              <span>💳</span> New Card Transaction
+            </button>
+            <button
+              onClick={() => navigate('/employee/add-customer')}
+              style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', padding: '9px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(6px)' }}
+            >
+              <span>👤</span> Add New Customer
+            </button>
+            <button
+              onClick={() => navigate('/employee/due-dates')}
+              style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', padding: '9px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(6px)' }}
+            >
+              <span>📅</span> Bill Due Dates
+            </button>
+            <button
+              onClick={() => navigate('/employee/pending-payments')}
+              style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', padding: '9px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(6px)' }}
+            >
+              <span>💰</span> Pending Collections
+            </button>
           </div>
         </div>
 
@@ -397,7 +429,7 @@ export default function EmployeeDashboard() {
               <div className="ed-module-title">
                 <span style={{color: '#3b82f6'}}>💳</span> Upcoming Dues
               </div>
-              <span className="ed-module-link">View All</span>
+              <span className="ed-module-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/employee/due-dates')}>View All</span>
             </div>
             <div className="ed-module-grid">
               <div className="ed-module-box">
@@ -416,7 +448,7 @@ export default function EmployeeDashboard() {
                 <div className="ed-module-box-amt" style={{color: '#3b82f6'}}>₹{fmt(amt7Days)}</div>
               </div>
             </div>
-            <div className="ed-module-total">
+            <div className="ed-module-total" style={{ cursor: 'pointer' }} onClick={() => navigate('/employee/due-dates')}>
               <span>Total Potential Collection</span>
               <strong>₹{fmt(potentialTotal)} ➔</strong>
             </div>
@@ -428,7 +460,7 @@ export default function EmployeeDashboard() {
               <div className="ed-module-title">
                 <span style={{color: '#eab308'}}>💰</span> Pending Collections
               </div>
-              <span className="ed-module-link">View All</span>
+              <span className="ed-module-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/employee/pending-payments')}>View All</span>
             </div>
             <div className="ed-module-col-top">
               <div className="ed-module-col-item">
@@ -466,7 +498,7 @@ export default function EmployeeDashboard() {
               <div className="ed-module-title">
                 <span style={{color: '#ef4444'}}>⏰</span> Customer Retention
               </div>
-              <span className="ed-module-link">View All</span>
+              <span className="ed-module-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/employee/customer-info')}>View All</span>
             </div>
             <div className="ed-module-grid">
               <div className="ed-module-box">
@@ -498,7 +530,23 @@ export default function EmployeeDashboard() {
           <div className="ed-card-header">
             <span className="ed-card-icon">💳</span>
             <h2>Recent Transactions</h2>
-            <span className="ed-card-badge">{txns.length} records</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="ed-card-badge">{txns.length} records</span>
+              <button 
+                onClick={() => navigate('/employee/reports')}
+                style={{ 
+                  background: '#f1f5f9', 
+                  border: '1px solid #e2e8f0', 
+                  color: '#2563eb', 
+                  fontWeight: 700, 
+                  fontSize: 12, 
+                  padding: '4px 12px', 
+                  borderRadius: 20, 
+                  cursor: 'pointer' 
+                }}>
+                View All ➔
+              </button>
+            </div>
           </div>
           <div className="ed-table-wrap">
             {loading ? (

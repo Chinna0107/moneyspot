@@ -148,3 +148,21 @@ export function useCustomerTransactions() {
 
   return { txns, loading, error, refetch }
 }
+
+// ── Customer Dashboard Overview (pending, cards, due dates) ───
+export function useCustomerOverview() {
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState('')
+
+  const refetch = useCallback(() => {
+    setLoading(true)
+    api('/customer/overview', { headers: authHeader() })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(e => { setError(e.message); setLoading(false) })
+  }, [])
+
+  useEffect(() => { refetch() }, [refetch])
+
+  return { overview: data, loading, error, refetch }
+}

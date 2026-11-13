@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MdCheckCircle, MdWarning, MdPhoneIphone, MdEmail, MdCreditCard, MdAccountBalance, MdImage, MdCalendarToday, MdReceipt } from 'react-icons/md'
 import { toast } from 'react-hot-toast'
 import { getCurrentToken } from '../../utils/tokenUtils'
@@ -7,6 +8,10 @@ import './CustomerQuickView.css'
 export default function CustomerQuickView({ customer, txns, onReverified }) {
   const [docTab, setDocTab] = useState('PAN')
   const [showPending, setShowPending] = useState(false)
+  const [showDuesModal, setShowDuesModal] = useState(false)
+  const [showAllTxnsModal, setShowAllTxnsModal] = useState(false)
+  const [hasShownAlert, setHasShownAlert] = useState(false)
+  const [showPendingAlert, setShowPendingAlert] = useState(false)
   const [showReverifyModal, setShowReverifyModal] = useState(false)
   const [reverifyStep, setReverifyStep] = useState(1)
   const [reverifyLoading, setReverifyLoading] = useState(false)
@@ -53,6 +58,14 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
   const pendingData = customer.pendingData || { pending_count: 0, total_remaining: 0, entries: [] }
   const pendingCount = pendingData.pending_count || 0
   const pendingAmt = parseFloat(pendingData.total_remaining || 0)
+
+  // Auto-alert popup once when customer has pending balance
+  useEffect(() => {
+    if (customer?.id && pendingAmt > 0 && !hasShownAlert) {
+      setShowPendingAlert(true)
+      setHasShownAlert(true)
+    }
+  }, [customer?.id, pendingAmt, hasShownAlert])
 
   // Due dates
   const billTxns = txns.filter(t => t.bill_due_date).sort((a, b) => new Date(a.bill_due_date) - new Date(b.bill_due_date))
@@ -416,7 +429,7 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
             <div className="cqv-dues-wrap">
               <div className="cqv-dues-hdr">
                 <div className="cqv-dues-title"><MdCalendarToday size={14} /> Upcoming Dues</div>
-                <div className="cqv-dues-link">View All</div>
+                <div className="cqv-dues-link" onClick={() => setShowDuesModal(true)}>View All ({billTxns.length})</div>
               </div>
               {billTxns.slice(0, 5).map((t, i) => {
                 const createdDate = new Date(t.created_at || Date.now());
@@ -466,9 +479,17 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
 
       {/* Recent Transactions Table */}
       <div className="cqv-table-card">
-        <div className="cqv-table-header">
-          <div className="cqv-table-title"><span className="num" style={{ background:'#f97316', color:'white', width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>5</span> Recent Transactions</div>
-          <button className="cqv-btn-outline" style={{ border: '1px solid #cbd5e1', color: '#475569' }}></button>
+        <div className="cqv-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="cqv-table-title"><span className="num" style={{ background:'#f97316', color:'white', width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>5</span> Recent Transactions ({txns.length})</div>
+          {txns.length > 0 && (
+            <button 
+              type="button"
+              className="cqv-btn-outline" 
+              onClick={() => setShowAllTxnsModal(true)}
+              style={{ border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 700, fontSize: 12, padding: '4px 12px', borderRadius: 8, cursor: 'pointer', background: '#fff' }}>
+              View All ({txns.length})
+            </button>
+          )}
         </div>
         <div className="cqv-table-wrap">
           <table className="cqv-table">
@@ -515,13 +536,96 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
         </div>
       </div>
 
-      {showPending && (
-        <div onClick={() => setShowPending(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:500, maxHeight:'85vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.2)' }}>
+      {/* ── Pending Alert Modal Popup on Select ── */}
+      {showPendingAlert && createPortal(
+        <div onClick={() => setShowPendingAlert(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.75)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:540, maxHeight:'85vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 25px 50px -12px rgba(220, 38, 38, 0.4)', border:'2px solid #ef4444' }}>
+            <div style={{ background:'linear-gradient(135deg, #dc2626, #b91c1c)', padding:'20px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ width:42, height:42, borderRadius:12, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
+                  ⚠️
+                </div>
+                <div>
+                  <div style={{ color:'rgba(255,255,255,0.85)', fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1 }}>Important Collection Alert</div>
+                  <div style={{ color:'#fff', fontWeight:900, fontSize:19, marginTop:2 }}>Outstanding Pending Balance</div>
+                </div>
+              </div>
+              <button onClick={() => setShowPendingAlert(false)} style={{ background:'rgba(255,255,255,0.2)', border:'none', color:'#fff', width:32, height:32, borderRadius:'50%', cursor:'pointer', fontSize:16, fontWeight:'bold' }}>✕</button>
+            </div>
+
+            <div style={{ padding:'16px 24px', background:'#fef2f2', borderBottom:'1px solid #fee2e2', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div>
+                <div style={{ fontSize:13, color:'#991b1b', fontWeight:600 }}>Customer: <strong>{customer.name}</strong></div>
+                <div style={{ fontSize:12, color:'#b91c1c', marginTop:2 }}>Total Pending Across <strong>{pendingCount}</strong> Entries</div>
+              </div>
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:11, color:'#991b1b', fontWeight:700, textTransform:'uppercase' }}>Pending Amount</div>
+                <div style={{ fontSize:22, fontWeight:900, color:'#dc2626' }}>₹{pendingAmt.toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+
+            <div style={{ overflowY:'auto', padding:'20px 24px', flex:1 }}>
+              <div style={{ fontSize:12, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:0.5, marginBottom:12 }}>
+                Date-wise & Branch Details:
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {pendingData.entries && pendingData.entries.map((entry, idx) => (
+                  <div key={idx} style={{ padding:'14px 16px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:12 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+                      <div>
+                        <span style={{ fontWeight:800, color:'#0f172a', fontSize:14 }}>Entry #{entry.id}</span>
+                        {entry.branch && (
+                          <span style={{ marginLeft:8, background:'#e0e7ff', color:'#3730a3', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:8 }}>
+                            🏢 {entry.branch}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontWeight:900, color:'#dc2626', fontSize:15 }}>
+                        ₹{parseFloat(entry.remaining_amount || entry.pending_amount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#64748b', marginTop:6 }}>
+                      <span>
+                        📅 Date: <strong>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—'}</strong>
+                        {entry.age_days !== undefined && <span style={{ marginLeft:6, color:'#d97706', fontWeight:600 }}>({entry.age_days}d ago)</span>}
+                      </span>
+                      <span style={{ fontWeight:700, color: entry.status === 'Cleared' ? '#059669' : '#d97706' }}>
+                        ● {entry.status || 'Pending'}
+                      </span>
+                    </div>
+
+                    {entry.reason && (
+                      <div style={{ marginTop:6, fontSize:12, color:'#475569', background:'#fff', padding:'6px 10px', borderRadius:8, border:'1px solid #f1f5f9' }}>
+                        📝 Reason: {entry.reason}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ padding:'16px 24px', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'flex-end', gap:12, background:'#f8fafc' }}>
+              <button onClick={() => setShowPendingAlert(false)} style={{ padding:'10px 20px', borderRadius:10, border:'1px solid #cbd5e1', background:'#fff', color:'#475569', fontWeight:700, cursor:'pointer', fontSize:13 }}>
+                Acknowledge & Close
+              </button>
+              <button onClick={() => { setShowPendingAlert(false); setShowPending(true); }} style={{ padding:'10px 22px', borderRadius:10, border:'none', background:'linear-gradient(135deg, #dc2626, #b91c1c)', color:'#fff', fontWeight:800, cursor:'pointer', fontSize:13 }}>
+                View Full Details
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Pending Dues Breakdown Modal ── */}
+      {showPending && createPortal(
+        <div onClick={() => setShowPending(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.7)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:540, maxHeight:'85vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.25)' }}>
             <div style={{ background:'linear-gradient(135deg,#dc2626,#991b1b)', padding:'20px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
               <div>
                 <div style={{ color:'rgba(255,255,255,0.7)', fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Financial Summary</div>
-                <div style={{ color:'#fff', fontWeight:900, fontSize:18, marginTop:2 }}>Pending Dues Breakdown</div>
+                <div style={{ color:'#fff', fontWeight:900, fontSize:18, marginTop:2 }}>Pending Balance Details (Date & Branch)</div>
               </div>
               <button onClick={() => setShowPending(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:32, height:32, borderRadius:'50%', cursor:'pointer', fontSize:16 }}>✕</button>
             </div>
@@ -531,14 +635,29 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {pendingData.entries.map((entry, idx) => (
                     <div key={idx} style={{ padding: 16, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontWeight: 700, color: '#0f172a' }}>Entry #{entry.id}</span>
-                        <span style={{ fontWeight: 800, color: '#dc2626' }}>₹{parseFloat(entry.remaining_amount || entry.pending_amount || 0).toLocaleString('en-IN')}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems:'center', marginBottom: 8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a' }}>Entry #{entry.id}</span>
+                          {entry.branch && (
+                            <span style={{ background:'#e0e7ff', color:'#3730a3', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:8 }}>
+                              🏢 {entry.branch}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontWeight: 800, color: '#dc2626', fontSize:16 }}>₹{parseFloat(entry.remaining_amount || entry.pending_amount || 0).toLocaleString('en-IN')}</span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Pending for {entry.age_days} days</span>
-                        <span style={{ fontWeight: 600 }}>{entry.status}</span>
+
+                      <div style={{ fontSize: 13, color: '#64748b', display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span>📅 Date: <strong>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—'}</strong> ({entry.age_days}d ago)</span>
+                        <span style={{ fontWeight: 600, color: entry.status === 'Cleared' ? '#059669' : '#d97706' }}>● {entry.status}</span>
                       </div>
+
+                      {entry.reason && (
+                        <div style={{ fontSize: 12, color: '#475569', background: '#fff', padding: '6px 10px', borderRadius: 8, marginTop: 6, border: '1px solid #f1f5f9' }}>
+                          📝 Note: {entry.reason}
+                        </div>
+                      )}
+
                       <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
                         <span style={{ padding: '2px 8px', background: entry.priority === 'High' ? '#fee2e2' : '#f1f5f9', color: entry.priority === 'High' ? '#dc2626' : '#64748b', fontSize: 11, borderRadius: 12, fontWeight: 600 }}>Priority: {entry.priority || 'Normal'}</span>
                       </div>
@@ -554,18 +673,158 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
             
             <div style={{ padding:'16px 24px', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f8fafc' }}>
               <div>
-                <div style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>Total Pending</div>
+                <div style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>Total Pending Balance</div>
                 <div style={{ fontSize:20, fontWeight:800, color:'#dc2626' }}>₹{pendingAmt.toLocaleString('en-IN')}</div>
               </div>
               <button onClick={() => setShowPending(false)} style={{ padding:'10px 24px', borderRadius:10, border:'none', background:'#e2e8f0', color:'#475569', fontWeight:700, cursor:'pointer', fontSize:14 }}>Close</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Upcoming Dues (View All Open Modal) ── */}
+      {showDuesModal && createPortal(
+        <div onClick={() => setShowDuesModal(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.7)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:540, maxHeight:'85vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.25)' }}>
+            <div style={{ background:'linear-gradient(135deg,#2563eb,#1d4ed8)', padding:'20px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
+              <div>
+                <div style={{ color:'rgba(255,255,255,0.7)', fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Credit Cards & Bills</div>
+                <div style={{ color:'#fff', fontWeight:900, fontSize:18, marginTop:2 }}>All Upcoming Dues ({billTxns.length})</div>
+              </div>
+              <button onClick={() => setShowDuesModal(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:32, height:32, borderRadius:'50%', cursor:'pointer', fontSize:16 }}>✕</button>
+            </div>
+
+            <div style={{ overflowY:'auto', padding:24, flex:1 }}>
+              {billTxns.length > 0 ? (
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {billTxns.map((t, i) => {
+                    const createdDate = new Date(t.created_at || Date.now());
+                    const dueDate = new Date(createdDate);
+                    dueDate.setDate(dueDate.getDate() + 30);
+                    
+                    const today = new Date();
+                    const diffTime = dueDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    const statusText = diffDays > 0 ? `Due in ${diffDays} days` : diffDays === 0 ? 'Due Today' : `Overdue ${Math.abs(diffDays)}d`;
+                    const statusColor = diffDays > 7 ? '#059669' : diffDays >= 0 ? '#d97706' : '#dc2626';
+                    const statusBg = diffDays > 7 ? '#ecfdf5' : diffDays >= 0 ? '#fffbeb' : '#fef2f2';
+                    const bankInfo = t.card_bank ? `${t.card_bank} •••• ${t.card_last4 || 'XXXX'}` : (t.bill_platform || t.platform || 'Bill Payment');
+
+                    return (
+                      <div key={i} style={{ padding:'14px 16px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:12, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                          <div style={{ fontWeight:800, color:'#0f172a', fontSize:14 }}>{bankInfo}</div>
+                          <div style={{ fontSize:12, color:'#64748b', marginTop:4, display:'flex', alignItems:'center', gap:6 }}>
+                            <span>Due Date: <strong>{dueDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</strong></span>
+                            <span style={{ color: statusColor, background: statusBg, padding:'2px 6px', borderRadius:4, fontWeight:700, fontSize:11 }}>
+                              {statusText}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign:'right' }}>
+                          <div style={{ fontSize:11, color:'#64748b', fontWeight:600 }}>Bill Amount</div>
+                          <div style={{ fontSize:16, fontWeight:900, color:'#0f172a' }}>₹{parseFloat(t.bill_amount || t.amount || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div style={{ textAlign:'center', color:'#64748b', padding:'40px 0' }}>
+                  No upcoming bill dues found for this customer.
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding:'16px 24px', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f8fafc' }}>
+              <div>
+                <div style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>Total Dues Count</div>
+                <div style={{ fontSize:18, fontWeight:800, color:'#2563eb' }}>{billTxns.length} Bills</div>
+              </div>
+              <button onClick={() => setShowDuesModal(false)} style={{ padding:'10px 24px', borderRadius:10, border:'none', background:'#e2e8f0', color:'#475569', fontWeight:700, cursor:'pointer', fontSize:14 }}>Close</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── All Recent Transactions Modal (View All) ── */}
+      {showAllTxnsModal && createPortal(
+        <div onClick={() => setShowAllTxnsModal(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.7)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:980, maxHeight:'88vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 25px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ background:'linear-gradient(135deg, #1e293b, #0f172a)', padding:'20px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
+              <div>
+                <div style={{ color:'rgba(255,255,255,0.7)', fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Customer Activity History</div>
+                <div style={{ color:'#fff', fontWeight:900, fontSize:19, marginTop:2 }}>All Transactions for {customer.name} ({txns.length})</div>
+              </div>
+              <button onClick={() => setShowAllTxnsModal(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:32, height:32, borderRadius:'50%', cursor:'pointer', fontSize:16, fontWeight:'bold' }}>✕</button>
+            </div>
+
+            <div style={{ overflowY:'auto', padding:'0', flex:1 }}>
+              {txns.length > 0 ? (
+                <div style={{ overflowX:'auto' }}>
+                  <table className="cqv-table" style={{ margin:0, width:'100%' }}>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Date & Time</th>
+                        <th>Service</th>
+                        <th>Bill Platform</th>
+                        <th>Bill Amount</th>
+                        <th>WD Platform</th>
+                        <th>Card</th>
+                        <th>Card Bank</th>
+                        <th>WD Amount</th>
+                        <th>Bill Remaining</th>
+                        <th>Total Collected</th>
+                        <th>Receive Mode</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {txns.map((t, i) => (
+                        <tr key={t.id || i}>
+                          <td style={{ color: '#64748b' }}>{i + 1}</td>
+                          <td>{new Date(t.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                          <td style={{ fontWeight: 600 }}>{t.service_type}</td>
+                          <td>{t.bill_platform || '—'}</td>
+                          <td style={{ color: '#dc2626', fontWeight: 700 }}>{parseFloat(t.bill_amount) > 0 ? `₹${parseFloat(t.bill_amount).toLocaleString('en-IN')}` : '—'}</td>
+                          <td>{t.platform || '—'}</td>
+                          <td>{t.card || '—'} {t.card_last4 ? `****${t.card_last4}` : ''}</td>
+                          <td>{t.card_bank || '—'}</td>
+                          <td style={{ color: '#16a34a', fontWeight: 700 }}>{parseFloat(t.amount) > 0 ? `₹${parseFloat(t.amount).toLocaleString('en-IN')}` : '—'}</td>
+                          <td>₹{parseFloat(t.bill_remaining || 0)}</td>
+                          <td style={{ color: '#16a34a', fontWeight: 800 }}>₹{parseFloat(t.total_collected || t.amount || 0).toLocaleString('en-IN')}</td>
+                          <td>{t.received_mode || t.payment_mode || '—'}</td>
+                          <td style={{ color: '#64748b' }}>{t.note || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign:'center', color:'#64748b', padding:'50px 0' }}>
+                  No transactions found for this customer.
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding:'16px 24px', borderTop:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f8fafc' }}>
+              <div style={{ fontSize:13, color:'#475569', fontWeight:600 }}>
+                Showing <strong>{txns.length}</strong> recorded transactions
+              </div>
+              <button onClick={() => setShowAllTxnsModal(false)} style={{ padding:'10px 24px', borderRadius:10, border:'none', background:'#e2e8f0', color:'#475569', fontWeight:700, cursor:'pointer', fontSize:14 }}>Close</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Step-by-Step Reverification Modal */}
-      {showReverifyModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}>
+      {showReverifyModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.75)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: '#fff', width: '100%', maxWidth: 500, borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
               <h2 style={{ margin: 0, fontSize: 18, color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>

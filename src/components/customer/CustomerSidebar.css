@@ -5,15 +5,22 @@
 /* ── Desktop Sidebar ── */
 .csb {
   width: 240px;
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(180deg, #1a0a2e 0%, #2d1155 50%, #1a0a2e 100%);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.15);
 }
+
+.csb::-webkit-scrollbar { width: 4px; }
+.csb::-webkit-scrollbar-track { background: transparent; }
+.csb::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
 .csb-brand {
   display: flex;
@@ -71,41 +78,67 @@
 .csb-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: rgba(255,255,255,0.65);
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.7);
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.csb-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.csb-link:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  transform: translateX(3px);
+}
 
 .csb-link.active {
-  background: linear-gradient(135deg, rgba(192,32,64,0.35), rgba(64,32,112,0.35));
+  background: linear-gradient(135deg, rgba(192,32,64,0.35), rgba(64,32,112,0.4));
   color: #fff;
-  border-left: 3px solid #c02040;
+  border-left: 3.5px solid #c02040;
+  box-shadow: 0 4px 14px rgba(192,32,64,0.2);
 }
 
-.csb-icon { font-size: 16px; width: 20px; text-align: center; }
+.csb-icon {
+  font-size: 19px;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.7);
+  transition: color 0.2s;
+}
+
+.csb-link.active .csb-icon {
+  color: #ff4d6d;
+}
 
 .csb-logout {
-  margin: 10px 12px 20px;
-  background: rgba(192,32,64,0.15);
-  border: 1px solid rgba(192,32,64,0.3);
-  color: #f87171;
-  padding: 10px;
-  border-radius: 8px;
+  margin: 10px 14px 22px;
+  background: rgba(192,32,64,0.12);
+  border: 1.5px solid rgba(192,32,64,0.3);
+  color: #ff6b81;
+  padding: 11px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.csb-logout:hover { background: rgba(192,32,64,0.3); color: #fff; }
+.csb-logout:hover {
+  background: #c02040;
+  border-color: #c02040;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(192,32,64,0.3);
+}
 
 /* ── Mobile elements — hidden on desktop ── */
 .csb-mobile-header,
@@ -119,6 +152,7 @@
   display: flex;
   min-height: 100vh;
   background: #f1f5f9;
+  align-items: flex-start;
 }
 
 .cust-content {

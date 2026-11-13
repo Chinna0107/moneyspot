@@ -131,7 +131,9 @@ export default function CustomerReverify() {
       if (res.ok && data.success) {
         const dob = data.data?.data?.dob || data.data?.dob || form.dob;
         const father_name = data.data?.data?.father_name || data.data?.father_name || form.father_name;
-        setForm({ ...form, aadhar_verified: true, aadhar_linked_mobile: data.full_name, dob, father_name })
+        const rawAddr = data.data?.data?.address || data.data?.address;
+        const address = typeof rawAddr === 'string' ? rawAddr : (rawAddr?.full || rawAddr?.combined_address || rawAddr?.complete_address || form.address);
+        setForm({ ...form, aadhar_verified: true, aadhar_linked_mobile: data.full_name, dob, father_name, address })
         toast.success('Aadhaar verified successfully')
       } else throw new Error(data.error || 'Aadhaar OTP verification failed')
     } catch (e) { toast.error(e.message) }
@@ -152,6 +154,7 @@ export default function CustomerReverify() {
       if (form.ifsc_code) fd.append('ifsc_code', form.ifsc_code)
       if (form.dob) fd.append('dob', form.dob)
       if (form.father_name) fd.append('father_name', form.father_name)
+      if (form.address) fd.append('address', form.address)
 
       if (form.aadhar_img) fd.append('aadhar_img', form.aadhar_img)
       if (form.pan_img) fd.append('pan_img', form.pan_img)

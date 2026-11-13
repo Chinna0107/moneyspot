@@ -96,7 +96,7 @@ export default function Requests() {
                   ) : (
                     <table className="dash-table">
                       <thead>
-                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>DOB</th><th>Father Name</th><th>Acc No.</th><th>Branch</th><th>Source</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th>Customer</th><th>Email</th><th>Phone</th><th>PAN</th><th>Aadhar</th><th>Address</th><th>DOB</th><th>Father Name</th><th>Acc No.</th><th>Branch</th><th>Source</th><th>Documents</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
                       </thead>
                       <tbody>
                         {rows.map(c => (
@@ -133,6 +133,15 @@ export default function Requests() {
                               <div style={{ fontWeight: 600 }}>{c.aadhar}</div>
                               {c.aadhar_verified && <div style={{ color: '#059669', fontSize: 10, fontWeight: 600, marginTop: 2 }}>✓ API Verified</div>}
                               {c.aadhar_linked_mobile && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>📱 Linked: {c.aadhar_linked_mobile}</div>}
+                            </td>
+                            <td style={{ minWidth: 160, maxWidth: 220 }}>
+                              {c.address ? (
+                                <div style={{ fontSize: 12, lineHeight: 1.35, color: '#334155', wordBreak: 'break-word' }} title={c.address}>
+                                  📍 {c.address}
+                                </div>
+                              ) : (
+                                <span style={{ color: '#94a3b8' }}>—</span>
+                              )}
                             </td>
                             <td>
                               <div style={{ fontWeight: 500 }}>{c.dob || '—'}</div>

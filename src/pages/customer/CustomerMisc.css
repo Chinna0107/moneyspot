@@ -1,0 +1,178 @@
+/* ══════════════════════════════════════════════════════
+   CustomerMisc.css — Enhanced Styles for Offers, Alerts,
+   Support & Security Pages
+   ══════════════════════════════════════════════════════ */
+
+/* Hero Banner Style for Misc Pages */
+.misc-hero {
+  background: linear-gradient(135deg, #1a0a2e 0%, #2d1155 60%, #c02040 100%);
+  border-radius: 20px;
+  padding: 30px 26px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(45, 17, 85, 0.2);
+  color: #fff;
+  animation: misc-fade-up 0.4s ease both;
+}
+
+.misc-hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.misc-orb1 { width: 240px; height: 240px; background: rgba(192,32,64,0.3); top: -60px; right: -40px; }
+.misc-orb2 { width: 200px; height: 200px; background: rgba(64,32,112,0.35); bottom: -60px; left: 20%; }
+
+.misc-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.misc-hero-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 6px;
+  letter-spacing: -0.4px;
+}
+
+.misc-hero-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 580px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Offers Grid & Card */
+.offer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.offer-card {
+  background: #fff;
+  border: 1.5px solid #edf2f7;
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.offer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(64, 32, 112, 0.12);
+  border-color: rgba(64, 32, 112, 0.25);
+}
+
+.offer-card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.offer-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.offer-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+/* Support Form Cards */
+.support-form-card {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.support-faq-item {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.support-faq-item.open {
+  border-color: #402070;
+  box-shadow: 0 4px 16px rgba(64, 32, 112, 0.08);
+}
+.support-faq-q {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+.support-faq-a {
+  padding: 0 20px 16px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* Security Cards */
+.sec-card {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+}
+.sec-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+@keyframes misc-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+

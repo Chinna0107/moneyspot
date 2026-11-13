@@ -183,11 +183,10 @@ function buildReceiptHTML(txn) {
     ],
     service: [
       { label: 'Service',        value: txn.service_type || '—' },
+      ...((txn.card_bank || txn.bank) ? [{ label: 'Bank Name', value: txn.card_bank || txn.bank }] : []),
+      ...((txn.card || txn.category)  ? [{ label: 'Card Type', value: txn.card || txn.category }]  : []),
+      ...(txn.card_last4              ? [{ label: 'Card Last 4', value: `•••• ${txn.card_last4}` }] : []),
       { label: 'Platform',       value: txn.platform || txn.bill_platform || '—' },
-      ...(txn.bank        ? [{ label: 'Bank',         value: txn.bank }]        : []),
-      ...(txn.card        ? [{ label: 'Card Type',    value: txn.card }]        : []),
-      ...(txn.card_bank   ? [{ label: 'Card Bank',    value: txn.card_bank }]   : []),
-      ...(txn.card_last4  ? [{ label: 'Card Last 4',  value: `****${txn.card_last4}` }] : []),
       ...(txn.payment_mode ? [{ label: 'Payment Mode', value: txn.payment_mode }] : []),
     ],
     customer: [

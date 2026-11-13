@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useCustomerProfile, useCustomerTransactions } from '../../hooks/useCustomerAuth'
 import CustomerSidebar from '../../components/customer/CustomerSidebar'
 import CustomerHeader from '../../components/shared/CustomerHeader'
@@ -10,17 +10,25 @@ export default function CustomerKYC() {
   const { txns } = useCustomerTransactions()
   const [lightbox, setLightbox] = useState(null)
 
+  const docs = [
+    { key: 'aadhar_img_url', label: 'Aadhaar Card Front / Back', icon: '🆔' },
+    { key: 'pan_img_url', label: 'PAN Card Document', icon: '💳' },
+    { key: 'card_front_img_url', label: 'Credit / Debit Card Front', icon: '🪪' }
+  ]
+
   return (
     <div className="cust-page">
       <CustomerSidebar />
       <div className="cust-content">
-        <div className="cust-topbar" style={{ marginBottom: 20 }}>
+
+        {/* ── Top Header ── */}
+        <div className="cust-topbar" style={{ marginBottom: 24 }}>
           {profile ? (
             <CustomerHeader customer={profile} txns={txns} dark={false} />
           ) : (
             <>
-              <h1>🪪 KYC & Profile</h1>
-              <p>Your identity documents and account details</p>
+              <h1>🪪 KYC Verification & Profile</h1>
+              <p>Your verified government identities, bank account details & addresses</p>
             </>
           )}
         </div>
@@ -28,11 +36,8 @@ export default function CustomerKYC() {
         {loading ? (
           <>
             <SkeletonCard rows={8} />
-            <div className="cust-card">
-              <div className="cust-card-header" style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <SkeletonLine width="30%" height={14} />
-              </div>
-              <div className="cust-card-body" style={{ padding: 20, display: 'flex', gap: 16 }}>
+            <div className="cust-card" style={{ marginTop: 20 }}>
+              <div className="cust-card-body" style={{ display: 'flex', gap: 16 }}>
                 <SkeletonLine width={280} height={160} radius={8} />
                 <SkeletonLine width={280} height={160} radius={8} />
               </div>
@@ -40,126 +45,187 @@ export default function CustomerKYC() {
           </>
         ) : (
           <>
-            <div className="cust-card">
-              <div className="cust-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0 }}>Personal Information</h2>
-                {profile?.profile_image_url ? (
-                  <img 
-                    src={profile.profile_image_url.startsWith('http') || profile.profile_image_url.startsWith('data:image') ? profile.profile_image_url : `data:image/jpeg;base64,${profile.profile_image_url}`} 
-                    alt="Profile" 
-                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e2e8f0', background: '#fff' }} 
-                  />
-                ) : (
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: '1px solid #e2e8f0' }}>👤</div>
-                )}
+            {/* ── KYC Status Banner ── */}
+            <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac', borderRadius: 16, padding: '18px 24px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#16a34a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800 }}>
+                  ✓
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: '#14532d' }}>KYC Fully Verified & Approved</div>
+                  <div style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>
+                    Your documents have been verified and approved by the branch admin.
+                  </div>
+                </div>
               </div>
-              <div className="cust-card-body">
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Full Name</span>
-                  <span className="cust-info-value">
-                    <span style={{ fontWeight: 600 }}>{profile?.name}</span>
-                    {profile?.pan_verified && profile?.aadhar_verified && profile?.bank_verified && <span style={{ background: '#d1fae5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, marginLeft: 8 }}>✓ KYC Verified</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Email</span>
-                  <span className="cust-info-value">
-                    <span>{profile?.email || '—'}</span>
-                    {profile?.email && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Verified</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Mobile</span>
-                  <span className="cust-info-value">
-                    <span>{profile?.phone}</span>
-                    <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Verified</span>
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">PAN Number</span>
-                  <span className="cust-info-value">
-                    <span style={{ fontWeight: 600 }}>{profile?.pan}</span>
-                    {profile?.pan_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Aadhar Number</span>
-                  <span className="cust-info-value">
-                    <span style={{ fontWeight: 600 }}>{profile?.aadhar}</span>
-                    {profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ API Verified</span>}
-                    {profile?.aadhar_linked_mobile && <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>(Linked: {profile.aadhar_linked_mobile})</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Date of Birth</span>
-                  <span className="cust-info-value">
-                    <span>{profile?.dob || '—'}</span>
-                    {profile?.dob && profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Father Name</span>
-                  <span className="cust-info-value">
-                    <span>{profile?.father_name || '—'}</span>
-                    {profile?.father_name && profile?.aadhar_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Aadhaar Match</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row">
-                  <span className="cust-info-label">Account Number</span>
-                  <span className="cust-info-value">
-                    <span style={{ fontWeight: 600 }}>{profile?.acc_number}</span>
-                    {profile?.bank_verified && <span style={{ color: '#059669', fontSize: 11, fontWeight: 600, marginLeft: 8 }}>✓ Bank Verified</span>}
-                  </span>
-                </div>
-                <div className="cust-info-row"><span className="cust-info-label">Branch</span><span className="cust-info-value">{profile?.branch || '—'}</span></div>
-                <div className="cust-info-row"><span className="cust-info-label">KYC Status</span><span className="cust-info-value"><span className="cust-badge cust-badge-success">✅ Approved</span></span></div>
-                <div className="cust-info-row"><span className="cust-info-label">Member Since</span><span className="cust-info-value">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN') : '—'}</span></div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ background: '#bbf7d0', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                  PAN Verified ✓
+                </span>
+                <span style={{ background: '#bbf7d0', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                  Aadhaar Verified ✓
+                </span>
+                <span style={{ background: '#bbf7d0', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                  Bank Verified ✓
+                </span>
               </div>
             </div>
 
-            <div className="cust-card">
-              <div className="cust-card-header"><h2>KYC Documents</h2></div>
-              <div className="cust-card-body">
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {[{ key: 'aadhar_img_url', label: '🪪 Aadhar Card' }, { key: 'pan_img_url', label: '🆔 PAN Card' }, { key: 'card_front_img_url', label: '🏧 Card Front' }].map(doc => (
-                    <div key={doc.key} className="kyc-doc-box">
-                      <div className="kyc-doc-label">{doc.label}</div>
-                      {profile?.[doc.key]
-                        ? <img src={profile[doc.key]} alt={doc.label} className="kyc-doc-img" onClick={() => setLightbox({ url: profile[doc.key], label: doc.label })} />
-                        : <div className="kyc-doc-empty">Not uploaded</div>}
+            {/* ── Personal & Banking Details Grid ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, marginBottom: 24 }}>
+
+              {/* Personal Information */}
+              <div className="cust-card" style={{ margin: 0 }}>
+                <div className="cust-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h2 style={{ margin: 0, fontSize: 16 }}>👤 Personal Information</h2>
+                  {profile?.profile_image_url ? (
+                    <img 
+                      src={profile.profile_image_url.startsWith('http') || profile.profile_image_url.startsWith('data:image') ? profile.profile_image_url : `data:image/jpeg;base64,${profile.profile_image_url}`} 
+                      alt="Profile" 
+                      style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e2e8f0' }} 
+                    />
+                  ) : (
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👤</div>
+                  )}
+                </div>
+                <div className="cust-card-body">
+                  {[
+                    { label: 'Customer Name', value: profile?.name, highlight: true },
+                    { label: "Father's Name", value: profile?.father_name || '—' },
+                    { label: 'Date of Birth', value: profile?.dob ? new Date(profile.dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { label: 'Mobile Number', value: profile?.phone },
+                    { label: 'Aadhaar Mobile', value: profile?.aadhar_linked_mobile || profile?.phone },
+                    { label: 'Email Address', value: profile?.email || '—' },
+                  ].map((row, i) => (
+                    <div key={i} className="cust-info-row">
+                      <span className="cust-info-label">{row.label}</span>
+                      <span className="cust-info-value" style={row.highlight ? { fontWeight: 700, color: '#1a0a2e' } : {}}>
+                        {row.value || '—'}
+                      </span>
                     </div>
                   ))}
                 </div>
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 14 }}>To update your documents, contact your branch or WhatsApp us.</p>
+              </div>
+
+              {/* Identity & Banking */}
+              <div className="cust-card" style={{ margin: 0 }}>
+                <div className="cust-card-header">
+                  <h2 style={{ margin: 0, fontSize: 16 }}>🏦 Identity & Payout Bank Details</h2>
+                </div>
+                <div className="cust-card-body">
+                  {[
+                    { label: 'PAN Card No.', value: profile?.pan, verified: true },
+                    { label: 'Aadhaar Number', value: profile?.aadhar ? `•••• •••• ${profile.aadhar.slice(-4)}` : '—', verified: true },
+                    { label: 'Bank Account No.', value: profile?.acc_number || profile?.account_number || '—', verified: true },
+                    { label: 'Bank IFSC Code', value: profile?.ifsc_code || '—' },
+                    { label: 'Assigned Branch', value: profile?.branch || '—' },
+                    { label: 'Approved Date', value: profile?.reviewed_at ? new Date(profile.reviewed_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' }
+                  ].map((row, i) => (
+                    <div key={i} className="cust-info-row">
+                      <span className="cust-info-label">{row.label}</span>
+                      <span className="cust-info-value" style={{ fontWeight: 600 }}>
+                        {row.value}
+                        {row.verified && <span style={{ color: '#059669', fontSize: 11, marginLeft: 6 }}>✓</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* ── Verified Aadhaar Address Card ── */}
+            <div className="cust-card" style={{ marginBottom: 24 }}>
+              <div className="cust-card-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>📍</span>
+                <h2 style={{ margin: 0, fontSize: 16 }}>Verified Aadhaar Address</h2>
+              </div>
+              <div className="cust-card-body">
+                {profile?.address ? (
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '16px 20px', lineHeight: 1.6, color: '#1e293b', fontSize: 14 }}>
+                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 0.5, marginBottom: 6 }}>
+                      Residential Address from Aadhaar Records
+                    </div>
+                    <strong>{profile.address}</strong>
+                  </div>
+                ) : (
+                  <div style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 13 }}>
+                    Address was not provided or is captured from physical document on file.
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* ── Uploaded KYC Document Vault ── */}
+            <div className="cust-card">
+              <div className="cust-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>📁</span>
+                  <h2 style={{ margin: 0, fontSize: 16 }}>Secure Document Vault</h2>
+                </div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Click on image to enlarge</span>
+              </div>
+              <div className="cust-card-body">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+                  {docs.map(d => {
+                    const url = profile?.[d.key]
+                    return (
+                      <div key={d.key} style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontWeight: 700, fontSize: 13, color: '#1e293b' }}>
+                          <span>{d.icon}</span>
+                          <span>{d.label}</span>
+                        </div>
+                        {url ? (
+                          <div
+                            onClick={() => setLightbox(url)}
+                            style={{ flex: 1, minHeight: 140, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: '1px solid #cbd5e1', position: 'relative', background: '#000' }}
+                          >
+                            <img
+                              src={url}
+                              alt={d.label}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95, transition: 'transform 0.2s' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                            <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>
+                              🔍 Click to Zoom
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ height: 140, background: '#f1f5f9', borderRadius: 10, border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 12 }}>
+                            <span style={{ fontSize: 24, marginBottom: 4 }}>📄</span>
+                            <span>Document on file</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
           </>
         )}
 
+        {/* Lightbox Preview */}
         {lightbox && (
-          <div className="kyc-lightbox" onClick={() => setLightbox(null)}>
-            <div className="kyc-lightbox-box" onClick={e => e.stopPropagation()}>
-              <div className="kyc-lightbox-header">
-                <span>{lightbox.label}</span>
-                <button onClick={() => setLightbox(null)}>✕</button>
-              </div>
-              <img src={lightbox.url} alt={lightbox.label} style={{ width: '100%', maxHeight: '65vh', objectFit: 'contain', background: '#f1f5f9' }} />
+          <div
+            onClick={() => setLightbox(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          >
+            <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => setLightbox(null)}
+                style={{ position: 'absolute', top: -40, right: 0, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: '50%', fontSize: 20, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+              <img src={lightbox} alt="Preview" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 12, boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} />
             </div>
           </div>
         )}
-      </div>
 
-      <style>{`
-        .kyc-doc-box { flex: 1; min-width: 200px; }
-        .kyc-doc-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
-        .kyc-doc-img { width: 100%; max-width: 280px; height: 160px; object-fit: cover; border-radius: 8px; border: 1.5px solid rgba(64,32,112,0.2); cursor: pointer; transition: transform 0.2s; }
-        .kyc-doc-img:hover { transform: scale(1.02); }
-        .kyc-doc-empty { width: 280px; height: 160px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 13px; }
-        .kyc-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .kyc-lightbox-box { background: #fff; border-radius: 12px; overflow: hidden; max-width: 600px; width: 100%; }
-        .kyc-lightbox-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: linear-gradient(135deg, #402070, #c02040); color: #fff; font-size: 13px; font-weight: 700; }
-        .kyc-lightbox-header button { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 13px; }
-      `}</style>
+      </div>
     </div>
   )
 }

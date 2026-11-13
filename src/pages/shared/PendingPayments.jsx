@@ -28,7 +28,16 @@ export default function PendingPayments({ role = 'employee' }) {
   const [followUpForm, setFollowUpForm] = useState({ contact_mode: 'Call', customer_response: '', next_follow_up_date: '' });
   const [ptpForm, setPtpForm] = useState({ ptp_date: '', ptp_amount: '', note: '' });
   const [addAmountForm, setAddAmountForm] = useState({ amount: '', note: '' });
-  const [newEntryForm, setNewEntryForm] = useState({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+  const [newEntryForm, setNewEntryForm] = useState({
+    customer_id: '',
+    cust_name: '',
+    cust_mobile: '',
+    pending_amount: '',
+    reason: '',
+    entry_date: new Date().toISOString().split('T')[0],
+    priority: 'P4',
+    is_vip: false
+  });
 
   // Customer live search (for new pending entry modal)
   const [custSearch, setCustSearch] = useState('');
@@ -155,10 +164,13 @@ export default function PendingPayments({ role = 'employee' }) {
       await api(`/collections`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify(newEntryForm)
+        body: JSON.stringify({
+          ...newEntryForm,
+          created_at: newEntryForm.entry_date ? new Date(newEntryForm.entry_date).toISOString() : undefined
+        })
       });
       setNewEntryModal(false);
-      setNewEntryForm({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', priority: 'P4', is_vip: false });
+      setNewEntryForm({ customer_id: '', cust_name: '', cust_mobile: '', pending_amount: '', reason: '', entry_date: new Date().toISOString().split('T')[0], priority: 'P4', is_vip: false });
       setCustSearch(''); setCustResults([]); setCustSelected(null); setCustMode('search');
       loadData();
     } catch (e) {
@@ -297,7 +309,8 @@ export default function PendingPayments({ role = 'employee' }) {
                 <thead>
                   <tr>
                     <th>Customer</th>
-                    <th>Ageing</th>
+                    <th>Date / Ageing</th>
+                    <th>Reason</th>
                     <th>Original</th>
                     <th>Recovered</th>
                     <th>Remaining</th>
@@ -317,8 +330,16 @@ export default function PendingPayments({ role = 'employee' }) {
                         <div style={{ fontSize: 12, color: '#64748b' }}>{c.cust_mobile} • {c.branch}</div>
                       </td>
                       <td>
-                        <div style={{ fontWeight: 600, color: c.age_days >= 30 ? '#ef4444' : '#334155' }}>
-                          {c.age_days || 0} Days
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: c.age_days >= 30 ? '#ef4444' : '#64748b', marginTop: 2 }}>
+                          {c.age_days || 0} Days ago
+                        </div>
+                      </td>
+                      <td style={{ maxWidth: 200, verticalAlign: 'middle' }}>
+                        <div style={{ fontSize: 12, color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.reason}>
+                          {c.reason || '—'}
                         </div>
                       </td>
                       <td style={{ color: '#64748b' }}>₹{Number(c.pending_amount).toLocaleString()}</td>
@@ -340,7 +361,7 @@ export default function PendingPayments({ role = 'employee' }) {
                     </tr>
                   ))}
                   {collections.length === 0 && !loading && (
-                    <tr><td colSpan="8" style={{ textAlign: 'center', padding: 20 }}>No pending collections found</td></tr>
+                    <tr><td colSpan="9" style={{ textAlign: 'center', padding: 20 }}>No pending collections found</td></tr>
                   )}
                 </tbody>
               </table>
@@ -390,9 +411,21 @@ export default function PendingPayments({ role = 'employee' }) {
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600 }}>Entry Date:</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                    {activeDrawerData.created_at ? new Date(activeDrawerData.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600 }}>Ageing:</span>
                   <span style={{ color: activeDrawerData.age_days >= 30 ? '#ef4444' : '#334155', fontWeight: 600 }}>{activeDrawerData.age_days || 0} Days</span>
                 </div>
+                {activeDrawerData.reason && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: '#64748b', textTransform: 'uppercase' }}>Reason / Note:</span>
+                    <span style={{ fontSize: 13, color: '#1e293b', fontWeight: 500, lineHeight: 1.4 }}>{activeDrawerData.reason}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: 600 }}>Next Follow-up:</span>
                   <span style={{ fontWeight: 600, color: '#2563eb' }}>
@@ -562,18 +595,22 @@ export default function PendingPayments({ role = 'employee' }) {
                 )}
                 <div style={{ display: 'flex', gap: 10 }}>
                   <div className="dash-form-group" style={{ flex: 1 }}>
-                    <label>Amount (₹)</label>
-                    <input required type="number" value={newEntryForm.pending_amount} onChange={e => setNewEntryForm({...newEntryForm, pending_amount: e.target.value})} />
+                    <label>Amount (₹) *</label>
+                    <input required type="number" min="1" value={newEntryForm.pending_amount} onChange={e => setNewEntryForm({...newEntryForm, pending_amount: e.target.value})} placeholder="e.g. 5000" />
                   </div>
                   <div className="dash-form-group" style={{ flex: 1 }}>
-                    <label>Priority</label>
-                    <select value={newEntryForm.priority} onChange={e => setNewEntryForm({...newEntryForm, priority: e.target.value})}>
-                      <option value="P1">P1 (Critical)</option>
-                      <option value="P2">P2 (High)</option>
-                      <option value="P3">P3 (Medium)</option>
-                      <option value="P4">P4 (Normal)</option>
-                    </select>
+                    <label>Entry Date *</label>
+                    <input required type="date" value={newEntryForm.entry_date} onChange={e => setNewEntryForm({...newEntryForm, entry_date: e.target.value})} />
                   </div>
+                </div>
+                <div className="dash-form-group">
+                  <label>Priority</label>
+                  <select value={newEntryForm.priority} onChange={e => setNewEntryForm({...newEntryForm, priority: e.target.value})}>
+                    <option value="P1">P1 (Critical)</option>
+                    <option value="P2">P2 (High)</option>
+                    <option value="P3">P3 (Medium)</option>
+                    <option value="P4">P4 (Normal)</option>
+                  </select>
                 </div>
                 <div className="dash-form-group">
                   <label>
@@ -582,8 +619,8 @@ export default function PendingPayments({ role = 'employee' }) {
                   </label>
                 </div>
                 <div className="dash-form-group">
-                  <label>Reason / Note</label>
-                  <textarea required rows={2} value={newEntryForm.reason} onChange={e => setNewEntryForm({...newEntryForm, reason: e.target.value})} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                  <label>Reason / Note *</label>
+                  <textarea required rows={2} value={newEntryForm.reason} onChange={e => setNewEntryForm({...newEntryForm, reason: e.target.value})} placeholder="Enter reason for pending payment (e.g. Card payment failure, Cash shortage, Bill payment balance)" style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #cbd5e1', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                 </div>
                 <div className="dash-modal-actions">
                   <button type="button" className="dash-btn" onClick={() => setNewEntryModal(false)}>Cancel</button>

@@ -1378,7 +1378,8 @@ export default function CustomerQuickView({ customer, txns, onReverified }) {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
